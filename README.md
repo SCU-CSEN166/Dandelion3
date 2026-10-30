@@ -59,7 +59,7 @@ We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sha
 | [Mozilla Common Voice](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0) | Hugging Face dataset | Supplementary ASR validation, accent diversity | Multilingual, accent-tagged subset usable | Public, consented crowd-sourced dataset |
 
 - **Data preparation:** Write a small generator/script for WhatsApp-export-style synthetic threads (sender, timestamp, text/audio); record or TTS-generate the corresponding audio; manually label a gold dev set (relevant/irrelevant, event type + attributes, injected fake PII) for evaluation; keep raw synthetic recordings out of version control, commit only anonymized derived examples.
-- **Data limitations:** Synthetic data will not capture real code-switching (Swahili/Dholuo mixed with English), background noise, or the true activity taxonomy Dandelion Africa actually uses — we are approximating based on the challenge description until we can validate against real program vocabulary.
+- **Data limitations:** Synthetic data will not capture real code-switching (Swahili/Dholuo mixed with English), background noise, or the true activity taxonomy Dandelion Africa actually uses, we are approximating based on the challenge description until we can validate against real program vocabulary.
 
 ### 4. Proposed evaluation
 | Metric / test | What it measures | How it will be calculated | Target / success criterion |
