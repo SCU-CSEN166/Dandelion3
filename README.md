@@ -1,60 +1,86 @@
 # CSEN 166 — Term Team Project for Social Impact (TTP4SI)
 
-**Team:** [A1–A4 or D1–D4]  
-**Challenge:** [Ardook / Dandelion Africa]  
-**Team members:** [Names]  
-**Repository:** [Link]  
-**Last updated:** [Date]
+**Team:** D3  
+**Challenge:** Dandelion Africa  
+**Team members:** Roland Breise, Sathvik Kumar, Ronav Poonekar  
+**Repository:** [Dandelion3](https://github.com/SCU-CSEN166/Dandelion3)  
+**Last updated:** 2026-10-30
 
 > **How to use this README:** Maintain this single file throughout the project. Complete the Week 5 project plan first, then update the appropriate weekly section before each milestone. Be specific and honest: describe what you attempted, what worked, what did not work, and what evidence supports your conclusions. For every week, document each member's actual contribution. If a task was not completed, explain the blocker and next step. Do not include private or sensitive data in this public README.
 
 ## Remember - Best Practices
 
 ### Data access and privacy
-[Explain where authorized data can be accessed. Do not commit personal information, private WhatsApp exports, API keys, credentials, or restricted grant/application records. Use synthetic or anonymized examples in the README.]
+We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sharing policy does not allow exporting it to the US. All data used in this project is **synthetic**, created by the team: text messages written to mimic plausible field-activity reports and chit-chat, plus voice notes recorded by team members/friends/family (or TTS-generated as a fallback) to cover a range of English accents, especially women's voices, similar to the real user base. Any names, ages, locations, or phone numbers appearing in synthetic messages are themselves fabricated, never real people's data, and are additionally run through the anonymization step before being used in examples here. No real PII, credentials, or API keys are committed to this repo; synthetic raw audio/text lives under `data/synthetic/` (gitignored for raw recordings, with only anonymized derived examples checked in).
 
 ### Known limitations
-[Keep a current list of what the system cannot reliably do.]
+- Pre-implementation: no pipeline exists yet; see the plan below.
+- Synthetic data cannot fully replicate real field conditions (code-switching with Swahili/Dholuo, background noise, overlapping speakers, actual Dandelion Africa activity taxonomy).
+- Accent coverage is limited to whichever voices the team can realistically record/recruit.
 
 ## Week 5 — Scope: Project Plan
 
 **Deliverable during Week 6 Lab:** A project plan (write in this README file) describing your problem formulation, proposed approach, each team member's responsibilities, proposed baseline models with Hugging Face links, proposed evaluation metrics, proposed data with links, and goals for each week.
 
 ### 1. Problem formulation and social impact
-- **Problem:** What specific task are you solving? [Write a precise problem statement.]
-- **Intended users:** Who would use the system, and for what decisions or activities?
-- **Inputs and outputs:** What will the system receive and produce? Give one concrete example.
-- **Success criteria:** What would make the system useful and reliable?
-- **Constraints and risks:** [e.g., privacy, missing data, hallucinations, language coverage, human verification]
+- **Problem:** Dandelion Africa field/community health workers report on their activities (home visits, trainings, livelihood distributions, patient follow-ups) informally in WhatsApp group chats — mixing text and voice notes with unrelated chit-chat. Program/M&E staff currently have to read through this manually to know what happened. We will build a pipeline that converts a raw WhatsApp export (text + audio) into structured, verifiable records of field activities and outcomes: filtering out irrelevant messages, transcribing audio, segmenting conversation into discrete events, extracting structured attributes, deduplicating repeated reports of the same event, and estimating confidence so uncertain extractions get routed to a human for verification.
+- **Intended users:** Dandelion Africa program/M&E (monitoring & evaluation) staff who need a structured activity log instead of scrolling through raw chat history.
+- **Inputs and outputs:** Input = a WhatsApp chat export (ordered messages with sender, timestamp, text and/or voice-note audio). Output = a list of structured event records. Example (synthetic): input message "Visited Mama A.'s homestead today, gave 2 goats as part of the livelihood program, she was very happy" (voice note, transcribed) → output `{event_type: "livelihood_distribution", date: "2026-02-03", beneficiary: "Mama A. (anonymized)", quantity: "2 goats", outcome: "positive", confidence: 0.82, source_msg_id: 145}`.
+- **Success criteria:** The pipeline correctly identifies which messages describe real activities (high precision/recall), extracts the right structured fields for those activities, never leaks PII into the output, and flags low-confidence or ambiguous extractions for human review rather than silently guessing.
+- **Constraints and risks:** No real data available at all (must build our own synthetic data from scratch); ASR errors on accented speech will cascade into wrong extractions; LLM-based extraction can hallucinate plausible-but-unsupported details; anonymization must have very high recall since a missed name/phone number is a real privacy failure, not just a quality issue; synthetic data will not fully represent the real distribution of messages.
 
 ### 2. Proposed technical approach
-- **Pipeline:** [List the main steps from input to output.]
-- **Baseline(s):** [Describe the simplest end-to-end method you can implement.]
-- **Proposed models/tools:** [Name, purpose, and link to each Hugging Face model or other resource.]
-  - [Model name](https://huggingface.co/models) — [What it will do; why selected]
-- **Alternative approach:** [What will you try if the baseline underperforms?]
+- **Pipeline:**
+  1. **Ingest** — parse the WhatsApp export (chat log + audio attachments).
+  2. **ASR** — transcribe voice notes to text (timestamped).
+  3. **Anonymization** — detect and redact PII (names, ages, locations, phone numbers) in both text and transcripts.
+  4. **Relevance filtering** — classify each message as a real field-activity report vs. irrelevant chit-chat.
+  5. **Event segmentation** — group related messages (same thread/time window) into one activity "event."
+  6. **Attribute extraction** — pull structured fields (activity type, date, location, quantity, outcome) from each event, schema-constrained to reduce hallucination.
+  7. **Deduplication** — detect multiple messages reporting the same underlying event.
+  8. **Confidence estimation** — combine ASR confidence, extraction self-consistency, and rule checks into a per-record confidence score.
+  9. **Human verification queue** — route low-confidence/ambiguous records for review (exported as a simple spreadsheet).
+- **Baseline(s):** Simplest end-to-end version: keyword/regex relevance filter + Whisper (small) for ASR + a single few-shot LLM prompt that does filtering, anonymization, and structured JSON extraction in one pass, with no dedup or confidence scoring yet. This gets raw input → structured output working end-to-end, which we then improve module by module.
+- **Proposed models/tools:**
+  - [openai/whisper-large-v3](https://huggingface.co/openai/whisper-large-v3) — ASR for voice notes; large-v3 chosen over small/base for better robustness to accented English (fallback to `whisper-small` if latency/compute is an issue).
+  - [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1) — speaker diarization if a voice note or export segment has multiple speakers.
+  - [dslim/bert-base-NER](https://huggingface.co/dslim/bert-base-NER) — NER-based detection of names/locations for anonymization (combined with regex for phone numbers/ages); Microsoft Presidio evaluated as an alternative/complementary toolkit.
+  - [facebook/bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli) — zero-shot classifier for the relevance-filtering step before we have enough labeled data to fine-tune.
+  - [sentence-transformers/all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) — sentence embeddings for similarity-based deduplication of repeated reports.
+  - [meta-llama/Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) — instruction-following LLM for schema-constrained structured extraction.
+- **Alternative approach:** If ASR accuracy on accented speech is too low, fine-tune/adapt Whisper on accented-English speech data (e.g., [AfriSpeech-200](https://huggingface.co/datasets/intronhealth/afrispeech-200)) instead of using it zero-shot. If LLM extraction hallucinates too often, move from free-form prompting to grammar/schema-constrained decoding (e.g., Outlines or a JSON-schema-enforced generation library) or a smaller fine-tuned extraction model.
 
 ### 3. Proposed data
 | Dataset/source | Link or access instructions | Purpose | Size / languages | Privacy or usage considerations |
 |---|---|---|---|---|
-| [Name] | [URL](https://huggingface.co/datasets) or other instructions] | [Training/development/evaluation] | [Details] | [Notes] |
+| Team-authored synthetic WhatsApp text | Created by team (scripts in `data/synthetic/`) | Training/development/evaluation | ~50–100 synthetic messages/threads to start, English, mix of relevant activity reports + chit-chat | All names/phone numbers/locations are fabricated; still passed through the anonymization step before being used as examples |
+| Team-recorded synthetic voice notes | Recorded by team members/friends/family (or TTS fallback) | Development/evaluation of ASR + full pipeline | Target: several accents/voices, majority women speakers, English | Only volunteers who consent to a synthetic, fabricated script; no real personal disclosures recorded |
+| [AfriSpeech-200](https://huggingface.co/datasets/intronhealth/afrispeech-200) | Hugging Face dataset | ASR robustness reference/validation (African-accented English) | ~200 hrs, African-accented English | Public research dataset; used only as an ASR benchmark, not Dandelion-specific content |
+| [Mozilla Common Voice](https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0) | Hugging Face dataset | Supplementary ASR validation, accent diversity | Multilingual, accent-tagged subset usable | Public, consented crowd-sourced dataset |
 
-- **Data preparation:** [Cleaning, anonymization, annotation, splitting, deduplication, etc.]
-- **Data limitations:** [What is missing, noisy, or uncertain?]
+- **Data preparation:** Write a small generator/script for WhatsApp-export-style synthetic threads (sender, timestamp, text/audio); record or TTS-generate the corresponding audio; manually label a gold dev set (relevant/irrelevant, event type + attributes, injected fake PII) for evaluation; keep raw synthetic recordings out of version control, commit only anonymized derived examples.
+- **Data limitations:** Synthetic data will not capture real code-switching (Swahili/Dholuo mixed with English), background noise, or the true activity taxonomy Dandelion Africa actually uses — we are approximating based on the challenge description until we can validate against real program vocabulary.
 
 ### 4. Proposed evaluation
 | Metric / test | What it measures | How it will be calculated | Target / success criterion |
 |---|---|---|---|
-| [Metric - e.g Accuracy, F1, AoC] | [Quality dimension] | [Method/ Formula] | [Target] |
+| Relevance F1 | Quality of filtering real activity reports from chit-chat | Precision/recall/F1 vs. gold-labeled dev messages | F1 ≥ 0.8 on dev set |
+| Word Error Rate (WER) | ASR transcription quality | WER of Whisper transcript vs. gold transcript on recorded dev audio | WER low enough that extraction errors are not ASR-dominated (target ≤ 20% as a first bar) |
+| Field-level extraction accuracy | Correctness of structured attributes extracted per event | Per-slot exact/partial match vs. gold structured record | ≥ 0.75 per-slot accuracy on dev set |
+| PII recall (anonymization) | Whether all injected PII is caught | % of injected fake names/ages/locations/phone numbers successfully redacted | As close to 100% as possible — this is a safety-critical metric, not just a quality one |
+| Deduplication precision/recall | Whether repeated reports of the same event are correctly merged | Pairwise match vs. gold duplicate-pairs labels | To be set once we have enough duplicate examples in the dev set |
+| Confidence calibration | Whether low-confidence flags correlate with actual errors | AUROC of confidence score vs. correctness on dev set | Confidence score meaningfully separates correct from incorrect extractions |
 
-- **Evaluation examples:** [How will you build or select a development set?]
-- **Human verification:** [If relevant, who will check outputs and how?]
-- **Failure cases to watch:** [At least two anticipated risks]
+- **Evaluation examples:** We will build our own labeled dev set (~30–50 synthetic threads, mixing relevant/irrelevant messages, injected PII, and some duplicate reports) and have each team member independently label a subset, then reconcile disagreements to produce the gold set.
+- **Human verification:** Team members cross-check each other's gold labels before finalizing; low-confidence pipeline outputs are routed to a reviewable queue rather than accepted automatically.
+- **Failure cases to watch:** (1) ASR mishearing accented speech and causing the wrong activity type/quantity to be extracted; (2) a misspelled or ASR-garbled name slipping past the anonymization NER model; (3) the extraction LLM inventing a plausible but unstated detail (e.g., a quantity or date not actually present in the message).
 
 ### 5. Team responsibilities
 | Member | Primary responsibility | Specific Weekly contribution | Planned next task |
 |---|---|---|---|
-| [Name] | [Data / models / evaluation / integration / etc.] | [Actual work completed] | [Next action] |
+| Roland Breise | [To confirm at team meeting — e.g., pipeline/integration] | Drafted Week 5 project plan (problem formulation, pipeline design, proposed models, data plan, evaluation plan) and set up the shared repo | Confirm role split with teammates; start Week 6 baseline work |
+| Sathvik Kumar | [To confirm — e.g., synthetic data creation] | [Fill in] | [Fill in] |
+| Ronav Poonekar | [To confirm — e.g., ASR/anonymization] | [Fill in] | [Fill in] |
 
 ---
 
