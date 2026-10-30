@@ -78,9 +78,9 @@ We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sha
 ### 5. Team responsibilities
 | Member | Primary responsibility | Specific Weekly contribution | Planned next task |
 |---|---|---|---|
-| Roland Breise | [To confirm at team meeting — e.g., pipeline/integration] | Drafted Week 5 project plan (problem formulation, pipeline design, proposed models, data plan, evaluation plan) and set up the shared repo | Confirm role split with teammates; start Week 6 baseline work |
-| Sathvik Kumar | [To confirm — e.g., synthetic data creation] | [Fill in] | [Fill in] |
-| Ronav Poonekar | [To confirm — e.g., ASR/anonymization] | [Fill in] | [Fill in] |
+| Roland Breise | Classifying & creating synthetic data | Drafted week 5 project plan and set up the shared repo | start week 6 baseline work |
+| Sathvik Kumar | Ingesting data | Helped draft week 5 project plan | start week 6 baseline work |
+| Ronav Poonekar | data formatting & testing | Helped draft week 5 project plan | start week 6 baseline work |
 
 ---
 
