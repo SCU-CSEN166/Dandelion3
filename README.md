@@ -32,13 +32,13 @@ We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sha
 ### 2. Proposed technical approach
 - **Pipeline:**
   1. **Parse** — parse the WhatsApp export (chat log + audio attachments).
-  2. **ASR** — transcribe voice notes to text.
-  3. **Anonymization** — detect and redact PII (names, ages, locations, phone numbers) in both text and transcripts.
-  4. **Relevance filtering** — classify each message as a real field-activity report vs. irrelevant chit-chat.
-  5. **Event segmentation** — group related messages (same thread/time window) into one activity "event."
-  6. **Attribute extraction** — pull structured fields (activity type, date, location, quantity, outcome) from each event, schema-constrained to reduce hallucination.
-  7. **Deduplication** — detect multiple messages reporting the same underlying event.
-  8. **Confidence estimation** — combine ASR confidence, extraction self-consistency, and rule checks into a per-record confidence score.
+  2. **ASR** — transcribe voice notes to text. (Whisper)
+  3. **Anonymization** — detect and redact PII (names, ages, locations, phone numbers) in both text and transcripts. (Bert)
+  4. **Relevance filtering** — classify each message as a real field-activity report vs. irrelevant chit-chat. (Bart)
+  5. **Event segmentation** — group related messages (same thread/time window) into one activity "event." (Bart)
+  6. **Attribute extraction** — pull structured fields (activity type, date, location, quantity, outcome) from each event, schema-constrained to reduce hallucination. (llama)
+  7. **Deduplication** — detect multiple messages reporting the same underlying event.   (llama)
+  8. **Confidence estimation** — combine ASR confidence, extraction self-consistency, and rule checks into a per-record confidence score. (bart)
   9. **Human verification queue** — route low-confidence/ambiguous records for review (exported as a simple spreadsheet).
 - **Baseline(s):** Simplest end-to-end version: keyword/regex relevance filter + Whisper (small) for ASR + a single few-shot LLM prompt that does filtering, anonymization, and structured JSON extraction in one pass, with no dedup or confidence scoring yet. This gets raw input → structured output working end-to-end, which we then improve module by module.
 - **Proposed models/tools:**
