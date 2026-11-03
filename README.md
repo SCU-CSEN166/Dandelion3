@@ -27,7 +27,7 @@ We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sha
 - **Intended users:** Dandelion Africa program/M&E (monitoring & evaluation) staff who need a structured activity log instead of scrolling through raw chat history.
 - **Inputs and outputs:** Input = a WhatsApp chat export (ordered messages with sender, timestamp, text and/or voice-note audio). Output = a list of structured event records. Example: input message "Visited Mama A.'s homestead today, gave 2 goats as part of the livelihood program, she was very happy" (voice note, transcribed) → output `{event_type: "livelihood_distribution", date: "2026-02-03", beneficiary: "Mama A. (anonymized)", quantity: "2 goats", outcome: "positive", confidence: 0.82, source_msg_id: 145}`.
 - **Success criteria:** The pipeline correctly identifies which messages describe real activities (high precision/recall), extracts the right structured fields for those activities, never leaks PII into the output, and flags low-confidence or ambiguous extractions for human review rather than guessing.
-- **Constraints and risks:** No data available; ASR errors on accented speech will cascade into wrong extractions; LLM-based extraction can hallucinate plausible-but-unsupported details; anonymization must have very high recall since a missed name/phone number is a real privacy failure, not just a quality issue; synthetic data will not fully represent the real distribution of messages.
+- **Constraints and risks:** No data available; ASR errors on accented speech will cascade into wrong extractions; LLM-based extraction can hallucinate plausible-but-unsupported details; anonymization must have very high recall since missed names or phone numbers would remain visible in the output; synthetic data will not fully represent the real distribution of messages.
 
 ### 2. Proposed technical approach
 - **Pipeline:**
@@ -67,7 +67,7 @@ We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sha
 | Relevance F1 | Quality of filtering real activity reports from chit-chat | Precision/recall/F1 vs. gold-labeled dev messages | F1 ≥ 0.8 on dev set |
 | Word Error Rate (WER) | ASR transcription quality | WER of Whisper transcript vs. gold transcript on recorded dev audio | WER low enough that extraction errors are not ASR-dominated (target ≤ 20% as a first bar) |
 | Field-level extraction accuracy | Correctness of structured attributes extracted per event | Per-slot exact/partial match vs. gold structured record | ≥ 0.75 per-slot accuracy on dev set |
-| PII recall (anonymization) | Whether all injected PII is caught | % of injected fake names/ages/locations/phone numbers successfully redacted | As close to 100% as possible; this is a safety-critical metric, not just a quality one |
+| PII recall (anonymization) | Whether all injected PII is caught | % of injected fake names/ages/locations/phone numbers successfully redacted | As close to 100% as possible |
 | Deduplication precision/recall | Whether repeated reports of the same event are correctly merged | Pairwise match vs. gold duplicate-pairs labels | To be set once we have enough duplicate examples in the dev set |
 | Confidence calibration | Whether low-confidence flags correlate with actual errors | AUROC of confidence score vs. correctness on dev set | Confidence score meaningfully separates correct from incorrect extractions |
 
