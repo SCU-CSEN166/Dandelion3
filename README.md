@@ -111,7 +111,7 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 ### Individual contributions during that week
 | Member | What I personally implemented/tested | Result (worked / partly / failed) | Evidence (commit, PR, experiment) | Blocker / next step |
 |---|---|---|---|---|
-| [Name] | [Specific contribution] | [Status] | [Link] | [Next step] |
+| Sathvik Kumar | Added a Whatssap message parser.|Worked| (https://github.com/SCU-CSEN166/Dandelion3/tree/main/data/synthetic)| Implement AI models and tests|
 
 ---
 
