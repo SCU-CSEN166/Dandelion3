@@ -1,8 +1,5 @@
-torch
-transformers>=4.40
-accelerate
-pytest
-transformers>=4.57
 torch>=2.8
+transformers>=4.57
+accelerate
 sentence-transformers>=3.0
 pytest>=7.0
