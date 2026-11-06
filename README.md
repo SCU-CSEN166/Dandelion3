@@ -14,9 +14,10 @@
 We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sharing policy does not allow exporting it to the US. All data used in this project is **synthetic**, created by the team: text messages written to mimic plausible field-activity reports and chit-chat, plus voice notes recorded by team members/friends/family (or TTS-generated as a fallback) to cover a range of English accents, especially women's voices, similar to the real user base. Any names, ages, locations, or phone numbers appearing in synthetic messages are themselves fabricated, never real people's data, and are additionally run through the anonymization step before being used in examples here. No real PII, credentials, or API keys are committed to this repo; synthetic raw audio/text lives under `data/synthetic/` (gitignored for raw recordings, with only anonymized derived examples checked in).
 
 ### Known limitations
-- Pre-implementation: no pipeline exists yet; see the plan below.
+- Only the relevance-filtering step is implemented so far (Roland's scope); ingestion, ASR, anonymization, segmentation, extraction, dedup, and confidence routing are not built yet.
+- The relevance classifier has only been tested on 24 team-written synthetic messages — too small to trust the 0.957 F1 as a real estimate yet.
 - Synthetic data cannot fully replicate real field conditions (code-switching with Swahili/Dholuo, background noise, overlapping speakers, actual Dandelion Africa activity taxonomy).
-- Accent coverage is limited to whichever voices the team can realistically record/recruit.
+- Accent coverage is limited to whichever voices the team can realistically record/recruit (no audio data yet — text only so far).
 
 ## Week 5 — Scope: Project Plan
 
@@ -89,21 +90,35 @@ We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sha
 **Deliverable during Week 7 Lab:** A runnable baseline, setup/run instructions, and 1–2 example inputs and outputs. Update this section with what worked, what failed, and individual contributions.
 
 ### Implementation status
-- **What runs end-to-end now?** [Describe exactly.]
-- **How to run it:** [Commands, dependencies, configuration; refer to Setup below.]
-- **Model(s) and data actually used:** [Names, versions, links, and any changes from the plan.]
-- **Example 1:** Input: [non-sensitive example] → Output: [result]
-- **Example 2:** Input: [non-sensitive example] → Output: [result]
+
+> This section covers **Roland's scope** (synthetic data + relevance classifying). Sathvik's ingestion step and Ronav's data formatting/testing step are not implemented yet — see their rows below.
+
+- **What runs end-to-end now?** `src/relevance_classifier.py` reads a WhatsApp-export-style text file, parses it into individual messages, and classifies each one as a real field-activity report ("relevant") or chit-chat ("irrelevant") using zero-shot classification — this is pipeline step 4 from the Week 5 plan. No ASR, anonymization, segmentation, extraction, or dedup yet (outside Roland's scope this week).
+- **How to run it:**
+  ```bash
+  cd Dandelion3
+  python3 -m venv .venv && source .venv/bin/activate
+  pip install -r requirements.txt
+  python src/relevance_classifier.py \
+    --input data/synthetic/whatsapp_export.txt \
+    --output outputs/relevance_predictions.jsonl \
+    --gold data/synthetic/gold_labels.jsonl
+  ```
+- **Model(s) and data actually used:** [facebook/bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli) (zero-shot classification, as proposed in the Week 5 plan), run on `data/synthetic/whatsapp_export.txt` — 24 team-authored synthetic messages (12 relevant / 12 irrelevant) with `data/synthetic/gold_labels.jsonl` as the gold labels.
+- **Example 1:** Input: `"Visited Mama Achieng's homestead today, gave 2 goats as part of the livelihood program. She was 67 years old and very happy with the support."` → Output: `relevant` (confidence 0.942)
+- **Example 2:** Input: `"anyone have a good recipe for ugali, want to try something new tonight"` → Output: `irrelevant` (confidence 0.886)
 
 ### Attempts and outcomes
 | Attempt / change | Worked? (Yes / Partly / No) | Evidence (output, metric, link) | What we learned / next step |
 |---|---|---|---|
-| [Attempt] | [Status] | [Evidence] | [Learning] |
+| Zero-shot relevance classifier (`facebook/bart-large-mnli`) on 24 synthetic messages | Yes | Precision 0.917, recall 1.0, F1 0.957 against `gold_labels.jsonl` (`outputs/relevance_predictions.jsonl`) | Already above the Week 5 target (F1 ≥ 0.8) on this small set. The one false positive was a "🙏 blessings, stay safe" message classified `relevant` at only 0.51 confidence — right at the decision boundary, so a confidence threshold (e.g. route anything < 0.6 to human review) should catch this kind of borderline case instead of silently misclassifying it. Next: grow the synthetic set past 24 messages and re-check F1 holds up. |
 
 ### Individual contributions during that week
 | Member | What I personally implemented/tested | Result (worked / partly / failed) | Evidence (commit, PR, experiment) | Blocker / next step |
 |---|---|---|---|---|
-| [Name] | [Specific contribution] | [Status] | [Link] | [Next step] |
+| Roland Breise | Wrote the synthetic WhatsApp dataset (`data/synthetic/whatsapp_export.txt` + gold labels) and the relevance classifier (`src/relevance_classifier.py`, zero-shot BART-MNLI) | Worked | F1 0.957 on the 24-message dev set; see `outputs/relevance_predictions.jsonl` | No blocker. Next: expand the synthetic dataset (more messages, more activity types, more borderline cases) and add a confidence-threshold rule for the human-review queue |
+| Sathvik Kumar | [Fill in — ingesting data] | [Status] | [Link] | [Next step] |
+| Ronav Poonekar | [Fill in — data formatting & testing] | [Status] | [Link] | [Next step] |
 
 ---
 
@@ -211,32 +226,48 @@ We have **no access to Dandelion Africa's real WhatsApp data**, Kenya's data-sha
 ## Setup and Reproducibility (keep updated)
 
 ### Requirements
-[Python version, libraries, compute requirements, model access]
+Python 3.9+. Libraries: `transformers`, `torch` (see `requirements.txt`). No GPU required — `facebook/bart-large-mnli` runs on CPU (or Apple Silicon MPS) for a dataset this small; the model (~1.6GB) downloads automatically from Hugging Face on first run.
 
 ### Installation
 ```bash
-# Add installation commands here
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### Run the system
 ```bash
-# Add an example command here
+python src/relevance_classifier.py \
+  --input data/synthetic/whatsapp_export.txt \
+  --output outputs/relevance_predictions.jsonl
 ```
 
 ### Run evaluation
 ```bash
-# Add an example evaluation command here
+python src/relevance_classifier.py \
+  --input data/synthetic/whatsapp_export.txt \
+  --output outputs/relevance_predictions.jsonl \
+  --gold data/synthetic/gold_labels.jsonl
 ```
+
+### Run tests
+```bash
+python -m pytest tests/ -v
+```
+The first three tests check the WhatsApp parser and the precision/recall/F1 scoring logic directly (fast, no model needed). The last test is a real integration check — it runs `facebook/bart-large-mnli` on `data/synthetic/whatsapp_export.txt` and fails if F1 drops below the Week 5 target (0.8).
 
 ### Repository structure
 ```text
-project/
+Dandelion3/
 ├── README.md
 ├── requirements.txt
+├── data/
+│   └── synthetic/        # Roland: synthetic WhatsApp text + gold labels
 ├── src/
+│   └── relevance_classifier.py   # Roland: relevance-filtering baseline
 ├── tests/
-├── evaluation/
-└── examples/
+│   └── test_relevance_classifier.py   # Roland: parser + scoring + F1-threshold tests
+└── outputs/
+    └── relevance_predictions.jsonl
 ```
 
 
