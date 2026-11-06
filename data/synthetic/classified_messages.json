@@ -1,0 +1,17 @@
+[
+  {
+    "event_id": "evt_0003",
+    "source_message_ids": [3],
+    "anonymized_text": "Visited [PERSON]'s homestead today, gave 2 goats as part of the livelihood program. She was [AGE] years old and very happy.",
+    "relevance": {"label": "relevant", "confidence": 0.94},
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": "Kakamega",
+      "quantity": "2 goats",
+      "outcome": "positive"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null
+  }
+]
