@@ -175,7 +175,7 @@ That example produces one activity (distributing 2 goats in Kakamega) with confi
 ### Individual contributions during that week
 | Member | Work completed | Result (worked / partly / failed) | Evidence | Next step |
 |---|---|---|---|---|
-| [Name] | [Specific work] | [Status] | [Link] | [Next step] |
+| Sathvik Kumar | Added a JSON loader and a Whisper ASR step that turn synthetic messages and voice notes into transcripts.| Partly |(https://github.com/SCU-CSEN166/Dandelion3/commits/parse-asr)| Test ASR on recorded voice notes and measure WER.|
 
 ---
 
