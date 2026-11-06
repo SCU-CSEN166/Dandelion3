@@ -99,7 +99,7 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 
 ### Implementation status
 
-> This section covers **Roland's scope** (synthetic data + relevance classifying). Sathvik's ingestion step and Ronav's data formatting/testing step are not implemented yet — see their rows below.
+The classifier and Ronav's data formatting baseline are described below. They run separately for now.
 
 - **What runs end-to-end now?** `src/relevance_classifier.py` reads a WhatsApp-export-style text file, parses it into individual messages, and classifies each one as a real field-activity report ("relevant") or chit-chat ("irrelevant") using zero-shot classification — this is pipeline step 4 from the Week 5 plan. No ASR, anonymization, segmentation, extraction, or dedup yet (outside Roland's scope this week).
 - **How to run it:**
@@ -116,6 +116,16 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 - **Example 1:** Input: `"Visited Mama Achieng's homestead today, gave 2 goats as part of the livelihood program. She was 67 years old and very happy with the support."` → Output: `relevant` (confidence 0.942)
 - **Example 2:** Input: `"anyone have a good recipe for ugali, want to try something new tonight"` → Output: `irrelevant` (confidence 0.886)
 
+**Ronav's data formatting baseline:** I added a baseline that keeps JSON fields consistent, removes exact duplicates, and groups messages with the same activity key. It uses simple confidence rules to flag missing or conflicting information for review. It still needs to be connected to the classifier's output.
+
+Run it from the project folder:
+
+```bash
+python3 src/activity_baseline.py data/synthetic/classified_messages.json activities.json
+```
+
+The included synthetic example produces one activity for distributing 2 goats in Kakamega, with a confidence score of 0.94 and no review flag. The output is saved in `activities.json`.
+
 ### Attempts and outcomes
 | Attempt / change | Worked? (Yes / Partly / No) | Evidence (output, metric, link) | What we learned / next step |
 |---|---|---|---|
@@ -126,7 +136,7 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 |---|---|---|---|---|
 | Roland Breise | Wrote the synthetic WhatsApp dataset (`data/synthetic/whatsapp_export.txt` + gold labels) and the relevance classifier (`src/relevance_classifier.py`, zero-shot BART-MNLI) | Worked | F1 0.957 on the 24-message dev set; see `outputs/relevance_predictions.jsonl` | No blocker. Next: expand the synthetic dataset (more messages, more activity types, more borderline cases) and add a confidence-threshold rule for the human-review queue |
 | Sathvik Kumar | Added a WhatsApp message parser (`src/parse_messages.py`) and sample data (`data/synthetic/sample_messages.json`) | Worked | [data/synthetic](https://github.com/SCU-CSEN166/Dandelion3/tree/main/data/synthetic) | Implement AI models and tests |
-| Ronav Poonekar | [Fill in — data formatting & testing] | [Status] | [Link] | [Next step] |
+| Ronav Poonekar | Added consistent JSON formatting, activity grouping, exact duplicate removal, and confidence/review rules | Worked on synthetic examples | `src/activity_baseline.py`, `data/synthetic/classified_messages.json`; commit `2aa0459` | Connect to the classifier's output and test more cases |
 
 ---
 
