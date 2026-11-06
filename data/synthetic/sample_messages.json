@@ -1,0 +1,20 @@
+[
+    {
+        "sender": "worker_1",
+        "timestamp": "2026-02-03 10:30",
+        "message": "Visited a household and distributed 52 goats.",
+        "type": "text"
+    },
+    {
+        "sender": "worker_2",
+        "timestamp": "2026-02-03 11:00",
+        "message": "Training session completed successfully.",
+        "type": "text"
+    },
+    {
+        "sender": "worker_3",
+        "timestamp": "2026-02-03 12:15",
+        "message": "Followed up with a household about their health visit.",
+        "type": "text"
+    }
+]
