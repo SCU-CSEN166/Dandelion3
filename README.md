@@ -145,28 +145,35 @@ The included synthetic example produces one activity for distributing 2 goats in
 **Deliverable during Week 8 Lab:** Preliminary evaluation results, metrics, development-set details, and 2–3 representative successes or failures. Include what you will improve next.
 
 ### Evaluation setup
-- **Development data:** [Source, size, selection, annotations, link or access instructions]
-- **Metrics and rationale:** [Why these metrics reflect the intended use]
-- **Comparison:** [Baseline versus current approach, if different]
+- **Development data:** We currently have 37 fake whatsapp messages written by the team (text only at the moment). 26 of those are the normal dev set and the other 11 are deliberately adversarial to probe the failure nodes. We also have gold labels for the relevance filtering metric only.
+- **Metrics and rationale:** Relevalce F1 to check directly against gold labels for relevance. PII redation success via targeted test cases not a formal recall number over the labeled set. Dedup uses precision/recall checked with 2 true duplicate and two true different cases (not a full confusion matrix yet as we have to few examples for that to mean much statistically)
+- **Comparison:** 
+-- Baseline: relevance classifier only
+-- Current: Full chain and larger dataset
 
-| System / version | Metric 1 | Metric 2 | Notes |
+| System / version | Relevance F1 | Needs-review flag rate | Notes |
 |---|---:|---:|---|
-| Baseline | [Value] | [Value] | [Notes] |
-| Current | [Value] | [Value] | [Notes] |
+| Baseline | 0.957 (24 msgs) | n/a | only single step |
+| Current | 0.958 (37 msgs) | 91% (20/22) | full chain and still similar f1. F1 held for harder data. The needs review flag rate is rather high at the moment as well because we are currently punishing confidence score for missing fields in the json |
+
+Other relevant numbers/notes:
+- Dedup: real duplicate was caught at about 0.8 similarity and a different real event flagged at 0.81 and a highly paraphrased real duplicate missed at 0.296 so this part is rather iffy at the moment
+- Anonymization: 2 bugs found and fixed (name fragment under redaction; overlapping entity text corruption). both are now covered by regression tests.
+- Extraction: no hallucinations observed but there are coverage gaps.
 
 ### Successes, failures, and interpretation
 | Example / category | Expected behavior | Actual behavior | Success or failure? | Likely reason |
 |---|---|---|---|---|
 | [Case] | [Expected] | [Observed] | [Status] | [Hypothesis] |
 
-- **What improved?** [Evidence]
-- **What did not improve?** [Evidence]
-- **Next experiment:** [Specific change and how you will measure it]
+- **What improved?** We went from a standalone relevenace classifier to the full chain running end to end. Held F1 score steady over improved dataset. found and fixed pipeline bugs 
+- **What did not improve?** Segmentation topics blindness has the same bugs and merges unrelated activities. Extraction keyword coverage does not work for unlisted activity types and so forth. We will probably pivot from this approach. The 91% review flag rate needs to be fixed and we need to properly classify what "needs review" before we can make sure the number is reasonable. 
+- **Next experiment:** Add a non PII disambiguation token check to deduplicate: before flagging two events as the same we also require their extracted activity_type, quantity and date to match which could fix the false positives we get.
 
 ### Individual contributions during that week
 | Member | Work completed | Result (worked / partly / failed) | Evidence | Next step |
 |---|---|---|---|---|
-| [Name] | [Specific work] | [Status] | [Link] | [Next step] |
+| Roland | Extended the synthetic dataset with adversarial cases. Found a 3 bugs by running full pipeline and fixed. Completed steps 3-7 of the pipeline| worked partially | test/, outputs/reviewed_events.json, and TESTING.md | pick and run one of the next eperiments |
 
 ---
 
