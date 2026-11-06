@@ -99,6 +99,28 @@ adjacent `PER` entities (e.g. "Otieno" → "O" + "##tien" + "##o"), which corrup
 by merging overlapping spans before redacting (`src/anonymize.py`, `_merge_overlapping_spans`), with
 a regression test in `tests/test_anonymize.py`.
 
+**Interface mismatch found integrating with Ronav's `activity_baseline.py`:** his script expects
+the input JSON to *be* a bare list of event records (`for message in messages: ...`), but
+`pipeline.py`'s main output is `{"events": [...], "irrelevant_messages": [...]}` — running his
+script directly on `outputs/pipeline_output.json` crashes (`TypeError: string indices must be
+integers`, from iterating the dict's keys as if they were records). Fixed by having `pipeline.py`
+also write a bare events list via `--events-output` (`outputs/events_for_review.json`), rather than
+changing his script to unwrap a format it was never shown. Regression test:
+`tests/test_integration.py`.
+
+**Finding, not yet a decision, from running the real full chain:** feeding our 22 real events
+through `activity_baseline.py` flags **20 of 22 (91%)** as `needs_review`, almost entirely because
+`location` is `None` (our extractor only recognizes 2 hardcoded place names — see §1). If "flag
+anything missing a field" means 91% of records always need human review, the review queue isn't
+actually triaging anything. This also can't tell "field is null" apart from "field has a wrong
+value" — e.g. event with the bogus `"678 after her follow-up visit"` quantity (case 28) only got
+flagged for low relevance confidence, not for the garbage quantity. Also: his grouping-by-
+`activity_key` mechanism has nothing to group on yet, since `pipeline.py` doesn't produce an
+`activity_key` field — every event passes through as its own singleton group (confirmed: 22 in,
+22 out). None of this is "wrong" so much as **unfinished coordination** between what Roland's
+extraction produces and what Ronav's review layer expects — worth a real conversation, not a
+unilateral fix to either side. Flagged for Week 7.
+
 **Bug found integrating with Sathvik's ingestion (`src/parser.py`):** its day-first/month-first
 auto-detection heuristic needs at least one date in the file where day or month is > 12 to tell
 which convention is in use. Every date in our synthetic export has both ≤ 12 (`03/02/2026`), so

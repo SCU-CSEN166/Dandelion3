@@ -1,0 +1,619 @@
+[
+  {
+    "event_id": "evt_0001",
+    "source_message_ids": [
+      2,
+      3
+    ],
+    "anonymized_text": "Visited [PERSON]'s homestead today, gave 2 goats as part of the livelihood program. She was [AGE] and very happy with the support. Also left some information pamphlets about the livelihood program with her.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9435
+    },
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "2 goats",
+      "outcome": "positive"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0002",
+    "source_message_ids": [
+      5
+    ],
+    "anonymized_text": "Conducted a nutrition training session for 14 mothers at the Kakamega community hall this morning. Went well, lots of questions.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9428
+    },
+    "attributes": {
+      "activity_type": "training",
+      "date": "2026-02-03",
+      "location": "Kakamega",
+      "quantity": "14 mothers",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.9428,
+      "needs_review": false,
+      "reasons": []
+    }
+  },
+  {
+    "event_id": "evt_0003",
+    "source_message_ids": [
+      7
+    ],
+    "anonymized_text": "Followed up with patient [PERSON]. [AGE] on his TB medication adherence. He has been taking his doses as scheduled.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.7655
+    },
+    "attributes": {
+      "activity_type": "health_visit",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0004",
+    "source_message_ids": [
+      9
+    ],
+    "anonymized_text": "Delivered mosquito nets to 8 households in the Shibuye area, all households confirmed receipt.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9556
+    },
+    "attributes": {
+      "activity_type": "distribution",
+      "date": "2026-02-03",
+      "location": "Shibuye",
+      "quantity": "8 households",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.9556,
+      "needs_review": false,
+      "reasons": []
+    }
+  },
+  {
+    "event_id": "evt_0005",
+    "source_message_ids": [
+      11
+    ],
+    "anonymized_text": "Attempted a follow-up call to beneficiary at [PHONE] regarding the seed distribution, no answer, will try again tomorrow.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9335
+    },
+    "attributes": {
+      "activity_type": "follow_up",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "needs_followup"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0006",
+    "source_message_ids": [
+      13
+    ],
+    "anonymized_text": "Provided prenatal checkup for [PERSON] at her home, pregnancy progressing normally, next visit scheduled in 2 weeks.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9548
+    },
+    "attributes": {
+      "activity_type": "health_visit",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "2 weeks",
+      "outcome": "positive"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0007",
+    "source_message_ids": [
+      15
+    ],
+    "anonymized_text": "Ran a hygiene and handwashing training for 20 schoolchildren at the local primary school today.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9926
+    },
+    "attributes": {
+      "activity_type": "training",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "20 schoolchildren",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0008",
+    "source_message_ids": [
+      16
+    ],
+    "anonymized_text": "\ud83d\ude4f blessings to everyone, stay safe out there today",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.5145
+    },
+    "attributes": {
+      "activity_type": "other",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.5145,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity",
+        "Low relevance confidence"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0009",
+    "source_message_ids": [
+      17
+    ],
+    "anonymized_text": "Distributed 15 food packages to households affected by the recent flooding near the river.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9763
+    },
+    "attributes": {
+      "activity_type": "distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "15 food packages",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0010",
+    "source_message_ids": [
+      19
+    ],
+    "anonymized_text": "Checked in on elderly beneficiary [AGE] who received livelihood support last month, chickens are doing well and she sold eggs at the market.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.8066
+    },
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "positive"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0011",
+    "source_message_ids": [
+      21
+    ],
+    "anonymized_text": "Completed intake for a new household referred by the local chief, 5 members, will schedule first livelihood assessment visit next week.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9318
+    },
+    "attributes": {
+      "activity_type": "intake_assessment",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "5 members",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0012",
+    "source_message_ids": [
+      23
+    ],
+    "anonymized_text": "Gave out seed packets (maize and beans) to 10 farmers in the cooperative as planned.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9634
+    },
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "10 farmers",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0013",
+    "source_message_ids": [
+      25
+    ],
+    "anonymized_text": "Also confirming [PERSON]'s homestead received the 2 goats from the livelihood program today, she seemed very pleased.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9353
+    },
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "2 goats",
+      "outcome": "positive"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0014",
+    "source_message_ids": [
+      27
+    ],
+    "anonymized_text": "Updated [PERSON]'s contact number in our records to 0712.345.678 after her follow-up visit.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.6668
+    },
+    "attributes": {
+      "activity_type": "follow_up",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "678 after her follow-up visit",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location",
+        "Low relevance confidence"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0015",
+    "source_message_ids": [
+      28,
+      29
+    ],
+    "anonymized_text": "Delivered mosquito nets to 6 households in Emuhaya. Also started a new training session for 12 farmers on composting.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9645
+    },
+    "attributes": {
+      "activity_type": "training",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "6 households",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0016",
+    "source_message_ids": [
+      30
+    ],
+    "anonymized_text": "Checking on the [PERSON] household's new goat shed construction.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.8694
+    },
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0017",
+    "source_message_ids": [
+      31
+    ],
+    "anonymized_text": "Materials for the shed were enough, roofing to finish tomorrow.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.6364
+    },
+    "attributes": {
+      "activity_type": "other",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity",
+        "Low relevance confidence"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0018",
+    "source_message_ids": [
+      32
+    ],
+    "anonymized_text": "Helped repair the community borehole pump so it works again.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.8936
+    },
+    "attributes": {
+      "activity_type": "other",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0019",
+    "source_message_ids": [
+      33
+    ],
+    "anonymized_text": "Gave out twenty two blankets to families affected by the cold weather.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9518
+    },
+    "attributes": {
+      "activity_type": "distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0020",
+    "source_message_ids": [
+      34
+    ],
+    "anonymized_text": "The family refused the proposed support and asked us not to return.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.7419
+    },
+    "attributes": {
+      "activity_type": "other",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0021",
+    "source_message_ids": [
+      35
+    ],
+    "anonymized_text": "Circling back \u2014 the goat handover at the Achieng place went well earlier today.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.8866
+    },
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": null,
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location, quantity"
+      ]
+    }
+  },
+  {
+    "event_id": "evt_0022",
+    "source_message_ids": [
+      36
+    ],
+    "anonymized_text": "Visited the [PERSON] family, gave 2 goats as part of the livelihood program, they were thrilled.",
+    "relevance": {
+      "label": "relevant",
+      "confidence": 0.9367
+    },
+    "attributes": {
+      "activity_type": "livelihood_distribution",
+      "date": "2026-02-03",
+      "location": null,
+      "quantity": "2 goats",
+      "outcome": "unknown"
+    },
+    "duplicate_of": null,
+    "duplicate_confidence": null,
+    "conflicts": {},
+    "confidence": {
+      "score": 0.6,
+      "needs_review": true,
+      "reasons": [
+        "Missing fields: location"
+      ]
+    }
+  }
+]

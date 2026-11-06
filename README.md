@@ -112,7 +112,11 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
   pip install -r requirements.txt
   python src/pipeline.py \
     --input data/synthetic/whatsapp_export.txt \
-    --output outputs/pipeline_output.json
+    --output outputs/pipeline_output.json \
+    --events-output outputs/events_for_review.json
+
+  # full 3-person chain: ingestion -> mid-pipeline -> Ronav's review layer
+  python src/activity_baseline.py outputs/events_for_review.json outputs/reviewed_events.json
   ```
 - **Model(s) and data actually used:** [facebook/bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli) (relevance), [dslim/bert-base-NER](https://huggingface.co/dslim/bert-base-NER) (anonymization), [sentence-transformers/all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) (dedup similarity), run on `data/synthetic/whatsapp_export.txt` — 37 team-authored synthetic messages, including a two-message event thread, a same-event duplicate reported by a different sender later, and 11 deliberately adversarial cases (messages 27–37) designed to probe each step's failure modes. **See [`TESTING.md`](TESTING.md)** for every threshold used, what each test checks, and the real success/failure result of each adversarial case.
 - **Example 1 (segmentation + extraction):** Input: messages 3+4, `"Visited Mama Achieng's homestead today, gave 2 goats... Also left some information pamphlets..."` → Output: one event, `{"activity_type": "livelihood_distribution", "date": "2026-02-03", "quantity": "2 goats", "outcome": "positive"}`, anonymized to `"Visited [PERSON]'s homestead..."`.
@@ -128,13 +132,14 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 | Attribute extraction (rule/regex baseline) | Partly | Clean cases extract correctly (goats, training, etc.). Adversarial cases found real gaps: an activity with no matching keyword falls back to `"other"` (case 33, correctly honest, but a coverage gap); a quantity written in words is missed entirely (case 34); a negative outcome isn't distinguished from "unknown" (case 35); an un-redacted phone number got misread as a quantity (case 28). | None of these are hallucinations (good — it never invents a plausible-but-wrong value), but the keyword coverage is clearly incomplete. Full list in `TESTING.md`. |
 | Deduplication with MiniLM embeddings | Partly | The real duplicate (message 26) is still caught (0.80 similarity). But a heavily-paraphrased true duplicate (case 36) scored only 0.296 and was missed, and a genuinely *different* beneficiary with similar phrasing (case 37) was wrongly flagged at 0.81 similarity — because anonymization had stripped the one detail (the name) that would have told them apart. | Important finding, not just a threshold-tuning problem: anonymization and deduplication can actively work against each other. Worth a real design discussion before Week 8. See `TESTING.md`. |
 | Integrated with Sathvik's `parser.py`/`asr.py` instead of maintaining a separate parser | Partly | Pipeline output is identical (22 events, 2 duplicates, 13 filtered) to the standalone version, confirming the integration itself is correct — but it only produced correct dates after a real bug was found and fixed: his date auto-detection defaulted to month-first on our day-first data (`03/02/2026` read as March 2, not Feb 3), because nothing in our dates was unambiguous enough to detect the convention. | Added an opt-in `dayfirst` parameter to `parse_chat()` rather than changing its default (his existing tests still pass). Full details in `TESTING.md`. |
+| Chained into Ronav's `activity_baseline.py` (confidence/review layer) | Partly | His script crashed on our actual output (`outputs/pipeline_output.json`) — it expects a bare list of events, we hand back a dict wrapper. Fixed by adding `pipeline.py --events-output` to also write the bare list it expects. Once that worked, it flagged **20 of our 22 real events (91%) as `needs_review`** — almost entirely because `location` is usually `None` (our extractor only recognizes 2 place names). | Not a bug exactly — more that "missing location" and "genuinely uncertain extraction" aren't the same thing, and his trigger treats them the same. At 91% flagged, the review queue isn't triaging anything. Real Week 7 discussion item, not something to silently patch on either side. Full details in `TESTING.md`. |
 
 ### Individual contributions during that week
 | Member | What I personally implemented/tested | Result (worked / partly / failed) | Evidence (commit, PR, experiment) | Blocker / next step |
 |---|---|---|---|---|
-| Roland Breise | Built the anonymization, relevance filtering, event segmentation, attribute extraction, and deduplication steps (`src/anonymize.py`, `src/relevance_classifier.py`, `src/segment.py`, `src/extract.py`, `src/dedup.py`), wired into `src/pipeline.py` producing the shared JSON output; expanded the synthetic dataset to 37 messages including 11 deliberately adversarial cases; 19 passing tests; documented every threshold and all success/failure results in `TESTING.md` | Worked | `outputs/pipeline_output.json`, `tests/`, `TESTING.md` | No blocker. Next: swap rule-based extraction for the planned Llama-based schema-constrained version once a local runtime (Ollama) is set up; resolve the anonymization/dedup tension found in `TESTING.md` |
-| Sathvik Kumar | Added a WhatsApp message parser (`src/parse_messages.py`) and sample data (`data/synthetic/sample_messages.json`) | Worked | [data/synthetic](https://github.com/SCU-CSEN166/Dandelion3/tree/main/data/synthetic) | Implement AI models and tests |
-| Ronav Poonekar | [Fill in — data formatting & testing] | [Status] | [Link] | [Next step] |
+| Roland Breise | Built anonymization, relevance filtering, event segmentation, attribute extraction, and deduplication (`src/anonymize.py`, `src/relevance_classifier.py`, `src/segment.py`, `src/extract.py`, `src/dedup.py`), wired into `src/pipeline.py`; integrated it with Sathvik's real ingestion (`parser.py`) and Ronav's review layer (`activity_baseline.py`), finding and fixing real bugs/mismatches in both handoffs along the way; expanded the synthetic dataset to 37 messages including 11 adversarial cases; 23 passing tests; documented every threshold and all success/failure results in `TESTING.md` | Worked | `outputs/`, `tests/`, `TESTING.md` | No blocker. Next: swap rule-based extraction for Llama once Ollama is set up; resolve the anonymization/dedup tension and the 91%-review-flag-rate issue found in `TESTING.md` |
+| Sathvik Kumar | Added a WhatsApp/iOS/Android parser with audio-attachment support (`src/parser.py`), a Whisper ASR step (`src/asr.py`), a JSON chat loader (`src/json_loader.py`), and an earlier simpler parser (`src/parse_messages.py`) | Worked | [src/parser.py](https://github.com/SCU-CSEN166/Dandelion3/blob/main/src/parser.py) | Implement AI models and tests |
+| Ronav Poonekar | Added `src/activity_baseline.py`: groups/validates Roland's extracted events, flags exact duplicates, and computes a confidence score + `needs_review` flag per event | Worked (with caveats — see `TESTING.md`'s 91%-flag-rate finding) | [src/activity_baseline.py](https://github.com/SCU-CSEN166/Dandelion3/blob/main/src/activity_baseline.py) | Revisit the review-trigger logic so "missing field" and "genuinely low confidence" aren't treated the same |
 
 ---
 
@@ -262,7 +267,7 @@ This runs Roland's full scope end-to-end (anonymize → relevance filter → seg
 ```bash
 python -m pytest tests/ -v
 ```
-22 tests (Sathvik's 3 parser tests + Roland's 19) across ingestion, each pipeline step, and a full end-to-end integration test. Most need the real models (they'll download on first run); a few pure-logic ones (regex redaction, scoring math) don't. See [`TESTING.md`](TESTING.md) for exactly what each test checks and every threshold used.
+23 tests (Sathvik's 3 parser tests + Roland's 20) across ingestion, each pipeline step, and two end-to-end integration tests — one covering just the mid-pipeline, one covering the full three-person chain (ingestion → mid-pipeline → Ronav's review layer). Most need the real models (they'll download on first run); a few pure-logic ones (regex redaction, scoring math) don't. See [`TESTING.md`](TESTING.md) for exactly what each test checks and every threshold used.
 
 ### Repository structure
 ```text
@@ -283,10 +288,13 @@ Dandelion3/
 │   ├── segment.py                # Roland: event segmentation
 │   ├── extract.py                # Roland: attribute extraction (rule-based baseline)
 │   ├── dedup.py                  # Roland: deduplication (MiniLM embeddings)
-│   └── pipeline.py               # Roland: real end-to-end system (uses Sathvik's parser.py)
-├── tests/                # 22 tests: 3 Sathvik's (parser) + 19 Roland's (everything else)
+│   ├── pipeline.py               # Roland: real end-to-end system (uses Sathvik's parser.py)
+│   └── activity_baseline.py      # Ronav: confidence/review layer, consumes Roland's events
+├── tests/                # 23 tests: 3 Sathvik's (parser) + 1 cross-team + 19 Roland's
 └── outputs/
-    └── pipeline_output.json      # shared JSON handoff for Ronav's formatting/testing step
+    ├── pipeline_output.json      # Roland's full output: {events, irrelevant_messages}
+    ├── events_for_review.json    # bare events list -- the shape activity_baseline.py expects
+    └── reviewed_events.json      # result of running the full 3-person chain end to end
 ```
 
 

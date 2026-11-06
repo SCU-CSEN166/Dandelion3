@@ -99,6 +99,13 @@ def main():
     parser.add_argument("--relevance-model", default="facebook/bart-large-mnli")
     parser.add_argument("--ner-model", default="dslim/bert-base-NER")
     parser.add_argument("--embedding-model", default="sentence-transformers/all-MiniLM-L6-v2")
+    parser.add_argument(
+        "--events-output",
+        type=Path,
+        default=None,
+        help="Also write just the events list (no irrelevant_messages wrapper) here -- "
+        "this is the shape Ronav's activity_baseline.py expects as input.",
+    )
     args = parser.parse_args()
 
     output = run_pipeline(args.input, args.relevance_model, args.ner_model, args.embedding_model)
@@ -112,6 +119,12 @@ def main():
         f"Wrote {len(output['events'])} events ({n_dupes} flagged as duplicates) "
         f"and {len(output['irrelevant_messages'])} filtered-out messages to {args.output}"
     )
+
+    if args.events_output:
+        args.events_output.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.events_output, "w", encoding="utf-8") as f:
+            json.dump(output["events"], f, indent=2, ensure_ascii=False)
+        print(f"Also wrote the bare events list to {args.events_output}")
 
 
 if __name__ == "__main__":
