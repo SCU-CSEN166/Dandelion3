@@ -174,6 +174,7 @@ Other relevant numbers/notes:
 | Member | Work completed | Result (worked / partly / failed) | Evidence | Next step |
 |---|---|---|---|---|
 | Roland | Extended the synthetic dataset with adversarial cases. Found a 3 bugs by running full pipeline and fixed. Completed steps 3-7 of the pipeline| worked partially | test/, outputs/reviewed_events.json, and TESTING.md | pick and run one of the next eperiments |
+| Sathvik Kumar | Added a JSON loader and a Whisper ASR step that turn synthetic messages and voice notes into transcripts.| Partly | https://github.com/SCU-CSEN166/Dandelion3/commits/parse-asr | Test ASR on recorded voice notes and measure WER. |
 
 ---
 
