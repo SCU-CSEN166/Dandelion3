@@ -2,8 +2,10 @@
 Full mid-pipeline baseline covering Roland's scope: anonymize -> relevance
 filter -> event segmentation -> attribute extraction -> deduplication.
 
-Produces the shared JSON handoff format for the rest of the team (this is
-what Ronav's formatting/testing step consumes).
+Built on top of Sathvik's ingestion step (`parser.py`) and ASR step
+(`asr.py`) rather than a separate parser, so this is the real end-to-end
+system, not a standalone demo. Produces the shared JSON handoff format for
+Ronav's formatting/testing step.
 
 Usage:
     python src/pipeline.py \
@@ -18,8 +20,14 @@ from pathlib import Path
 from anonymize import anonymize_text
 from dedup import find_duplicates
 from extract import extract_attributes
-from relevance_classifier import classify_relevance, parse_whatsapp_export
+from parser import Message, parse_chat
+from relevance_classifier import classify_relevance
 from segment import segment_events
+
+
+def _message_text(m: Message) -> str:
+    """Prefer the ASR transcript for voice notes; fall back to the raw text."""
+    return m.transcript if (m.is_voice_note and m.transcript) else m.text
 
 
 def run_pipeline(
@@ -27,9 +35,15 @@ def run_pipeline(
     relevance_model: str = "facebook/bart-large-mnli",
     ner_model: str = "dslim/bert-base-NER",
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+    dayfirst: bool = True,
 ) -> dict:
-    messages = parse_whatsapp_export(input_path)
-    print(f"Parsed {len(messages)} messages from {input_path}")
+    raw_messages = parse_chat(input_path, dayfirst=dayfirst)
+    messages = [
+        {"id": m.msg_id, "timestamp": m.timestamp, "sender": m.sender, "text": _message_text(m)}
+        for m in raw_messages
+        if not m.is_system
+    ]
+    print(f"Parsed {len(messages)} messages from {input_path} (via Sathvik's parser.py)")
 
     # Step 3: anonymize every message before anything downstream sees it.
     for msg in messages:
@@ -51,8 +65,8 @@ def run_pipeline(
 
     messages_by_id = {m["id"]: m for m in messages}
     for event in events:
-        first_message = messages_by_id[event["source_message_ids"][0]]
-        event["attributes"] = extract_attributes(event["anonymized_text"], first_message["date"])
+        source_date = event["_first_timestamp"].split("T")[0]
+        event["attributes"] = extract_attributes(event["anonymized_text"], source_date)
         event["relevance"] = {
             "label": "relevant",
             "confidence": max(
@@ -60,6 +74,7 @@ def run_pipeline(
             ),
         }
         del event["sender"]
+        del event["_first_timestamp"]
 
     # Step 7: flag events that describe the same underlying activity.
     find_duplicates(events, embedding_model)

@@ -95,13 +95,24 @@ def _find_attachment(text: str) -> Optional[str]:
     return None
 
 
-def parse_chat(chat_path: str | Path, audio_dir: Optional[str | Path] = None) -> list[Message]:
+def parse_chat(
+    chat_path: str | Path,
+    audio_dir: Optional[str | Path] = None,
+    dayfirst: Optional[bool] = None,
+) -> list[Message]:
     """Parse a WhatsApp .txt export. Audio filenames are resolved against audio_dir
-    (defaults to the folder containing the chat file)."""
+    (defaults to the folder containing the chat file).
+
+    `dayfirst` overrides the auto-detection heuristic below, which can't tell
+    "03/02/2026" is day-first when every date in the file has day and month
+    both <= 12 (there's no ambiguous value to detect from) -- it silently
+    falls back to month-first in that case. Pass True/False explicitly for
+    exports you know the convention of (e.g. our synthetic data is day-first)."""
     chat_path = Path(chat_path)
     audio_dir = Path(audio_dir) if audio_dir else chat_path.parent
     lines = chat_path.read_text(encoding="utf-8-sig").splitlines()
-    dayfirst = _detect_dayfirst(lines)
+    if dayfirst is None:
+        dayfirst = _detect_dayfirst(lines)
 
     raw: list[dict] = []
     for line in lines:

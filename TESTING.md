@@ -99,6 +99,17 @@ adjacent `PER` entities (e.g. "Otieno" → "O" + "##tien" + "##o"), which corrup
 by merging overlapping spans before redacting (`src/anonymize.py`, `_merge_overlapping_spans`), with
 a regression test in `tests/test_anonymize.py`.
 
+**Bug found integrating with Sathvik's ingestion (`src/parser.py`):** its day-first/month-first
+auto-detection heuristic needs at least one date in the file where day or month is > 12 to tell
+which convention is in use. Every date in our synthetic export has both ≤ 12 (`03/02/2026`), so
+there's nothing ambiguous for it to detect, and it silently defaulted to month-first — reading
+"3 February" as "2 March" for every single message. Fixed by adding an optional `dayfirst`
+parameter to `parse_chat()` that overrides the heuristic when the caller already knows the
+convention (ours does: `src/pipeline.py` passes `dayfirst=True`), without changing the default
+behavior his own tests rely on. Regression test: `tests/test_parser.py::test_dayfirst_override`.
+This is also the main reason `src/pipeline.py` now calls `parser.parse_chat()` directly instead of
+keeping its own separate parser — running the actual shared ingestion code is what surfaced this.
+
 **Takeaway for Week 7/8:** the two deduplication failures (36, 37) point at the same root cause from
 opposite directions — pure text-similarity dedup can't reliably tell "same event, different words"
 apart from "different event, same words" once anonymization has removed the one detail that would

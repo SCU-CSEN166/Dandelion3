@@ -101,9 +101,9 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 
 ### Implementation status
 
-> This section covers **Roland's scope**: anonymization, relevance filtering, event segmentation, attribute extraction, and deduplication (pipeline steps 3–7). Sathvik's ingestion step and Ronav's data formatting/testing step are separate — see their rows below.
+> This section covers **Roland's scope**: anonymization, relevance filtering, event segmentation, attribute extraction, and deduplication (pipeline steps 3–7), now integrated with **Sathvik's ingestion step** (`src/parser.py`, `src/asr.py`). Ronav's data formatting/testing step is separate — see the row below.
 
-- **What runs end-to-end now?** `src/pipeline.py` takes the raw synthetic WhatsApp export and runs the full mid-pipeline: **anonymize** (BERT NER + regex) → **relevance-filter** (zero-shot BART-MNLI) → **segment** relevant messages into events (same-sender/time-window rule) → **extract attributes** (keyword/regex baseline — see note below) → **deduplicate** events (MiniLM sentence-embedding similarity). It outputs one shared JSON file for the rest of the team. No ASR yet (depends on Sathvik's ingestion step).
+- **What runs end-to-end now?** `src/pipeline.py` calls Sathvik's `parser.py` to parse the raw WhatsApp export (not a separate copy of parsing logic — this is the real shared ingestion code), then runs: **anonymize** (BERT NER + regex) → **relevance-filter** (zero-shot BART-MNLI) → **segment** relevant messages into events (same-sender/time-window rule) → **extract attributes** (keyword/regex baseline — see note below) → **deduplicate** events (MiniLM sentence-embedding similarity). It outputs one shared JSON file for the rest of the team. ASR (`src/asr.py`, Whisper) is wired in for voice notes but untested on real audio — our synthetic data is text-only so far.
 - **Why rule-based extraction instead of Llama:** the Week 5 plan calls for a schema-constrained Llama-3.1-8B prompt for attribute extraction. This machine has 16GB RAM, which isn't enough to run the full model locally, and setting up a quantized local runtime (Ollama) was out of scope for this week — so attribute extraction and dedup use keyword/regex and sentence-embedding baselines instead, which the Week 5 plan already listed as fallback options. Swapping in the LLM version is the planned next step.
 - **How to run it:**
   ```bash
@@ -127,6 +127,7 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 | Event segmentation (same-sender, ≤10 min rule) | Partly | Messages 3+4 merge correctly (intended case). But a deliberately adversarial pair 3 minutes apart (cases 29/30) got wrongly merged despite being two *different* activities, and a real continuation 12 minutes apart (cases 31/32) got wrongly split. | Confirms the rule has no topic awareness — it's purely time/sender-based, and both directions of that limitation are now demonstrated with real examples (not hypothetical). See `TESTING.md`. |
 | Attribute extraction (rule/regex baseline) | Partly | Clean cases extract correctly (goats, training, etc.). Adversarial cases found real gaps: an activity with no matching keyword falls back to `"other"` (case 33, correctly honest, but a coverage gap); a quantity written in words is missed entirely (case 34); a negative outcome isn't distinguished from "unknown" (case 35); an un-redacted phone number got misread as a quantity (case 28). | None of these are hallucinations (good — it never invents a plausible-but-wrong value), but the keyword coverage is clearly incomplete. Full list in `TESTING.md`. |
 | Deduplication with MiniLM embeddings | Partly | The real duplicate (message 26) is still caught (0.80 similarity). But a heavily-paraphrased true duplicate (case 36) scored only 0.296 and was missed, and a genuinely *different* beneficiary with similar phrasing (case 37) was wrongly flagged at 0.81 similarity — because anonymization had stripped the one detail (the name) that would have told them apart. | Important finding, not just a threshold-tuning problem: anonymization and deduplication can actively work against each other. Worth a real design discussion before Week 8. See `TESTING.md`. |
+| Integrated with Sathvik's `parser.py`/`asr.py` instead of maintaining a separate parser | Partly | Pipeline output is identical (22 events, 2 duplicates, 13 filtered) to the standalone version, confirming the integration itself is correct — but it only produced correct dates after a real bug was found and fixed: his date auto-detection defaulted to month-first on our day-first data (`03/02/2026` read as March 2, not Feb 3), because nothing in our dates was unambiguous enough to detect the convention. | Added an opt-in `dayfirst` parameter to `parse_chat()` rather than changing its default (his existing tests still pass). Full details in `TESTING.md`. |
 
 ### Individual contributions during that week
 | Member | What I personally implemented/tested | Result (worked / partly / failed) | Evidence (commit, PR, experiment) | Blocker / next step |
@@ -261,7 +262,7 @@ This runs Roland's full scope end-to-end (anonymize → relevance filter → seg
 ```bash
 python -m pytest tests/ -v
 ```
-19 tests across the parser, each pipeline step, and a full end-to-end integration test. Most need the real models (they'll download on first run); a few pure-logic ones (regex redaction, scoring math) don't. See [`TESTING.md`](TESTING.md) for exactly what each test checks and every threshold used.
+22 tests (Sathvik's 3 parser tests + Roland's 19) across ingestion, each pipeline step, and a full end-to-end integration test. Most need the real models (they'll download on first run); a few pure-logic ones (regex redaction, scoring math) don't. See [`TESTING.md`](TESTING.md) for exactly what each test checks and every threshold used.
 
 ### Repository structure
 ```text
@@ -272,14 +273,18 @@ Dandelion3/
 ├── data/
 │   └── synthetic/        # Roland: synthetic WhatsApp text + gold labels | Sathvik: sample_messages.json
 ├── src/
-│   ├── parse_messages.py         # Sathvik: ingestion
-│   ├── relevance_classifier.py   # Roland: relevance-filtering + WhatsApp-export parser
+│   ├── parser.py                 # Sathvik: ingestion (WhatsApp .txt parser, Android/iOS)
+│   ├── asr.py                    # Sathvik: Whisper transcription of voice notes
+│   ├── json_loader.py            # Sathvik: JSON-format chat loader
+│   ├── run_parse_asr.py          # Sathvik: CLI for ingestion+ASR alone
+│   ├── parse_messages.py         # Sathvik: earlier/simpler ingestion (kept for sample_messages.json)
+│   ├── relevance_classifier.py   # Roland: relevance-filtering (+ standalone WhatsApp parser)
 │   ├── anonymize.py              # Roland: PII redaction (BERT NER + regex)
 │   ├── segment.py                # Roland: event segmentation
 │   ├── extract.py                # Roland: attribute extraction (rule-based baseline)
 │   ├── dedup.py                  # Roland: deduplication (MiniLM embeddings)
-│   └── pipeline.py               # Roland: orchestrates anonymize→filter→segment→extract→dedup
-├── tests/                # Roland: 18 tests covering the above
+│   └── pipeline.py               # Roland: real end-to-end system (uses Sathvik's parser.py)
+├── tests/                # 22 tests: 3 Sathvik's (parser) + 19 Roland's (everything else)
 └── outputs/
     └── pipeline_output.json      # shared JSON handoff for Ronav's formatting/testing step
 ```

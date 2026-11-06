@@ -68,9 +68,12 @@ def to_iso_date(date_str: str) -> str:
 
 
 def extract_attributes(anonymized_text: str, source_date: str) -> dict:
+    """`source_date` accepts either `DD/MM/YYYY` or an already-ISO
+    `YYYY-MM-DD` (e.g. sliced from Sathvik's parser's ISO timestamps)."""
+    date_iso = to_iso_date(source_date) if "/" in source_date else source_date
     return {
         "activity_type": extract_activity_type(anonymized_text),
-        "date": to_iso_date(source_date),
+        "date": date_iso,
         "location": extract_location(anonymized_text),
         "quantity": extract_quantity(anonymized_text),
         "outcome": extract_outcome(anonymized_text),

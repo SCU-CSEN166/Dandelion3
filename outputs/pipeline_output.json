@@ -2,8 +2,8 @@
   "events": [
     {
       "source_message_ids": [
-        3,
-        4
+        2,
+        3
       ],
       "anonymized_text": "Visited [PERSON]'s homestead today, gave 2 goats as part of the livelihood program. She was [AGE] and very happy with the support. Also left some information pamphlets about the livelihood program with her.",
       "event_id": "evt_0001",
@@ -23,7 +23,7 @@
     },
     {
       "source_message_ids": [
-        6
+        5
       ],
       "anonymized_text": "Conducted a nutrition training session for 14 mothers at the Kakamega community hall this morning. Went well, lots of questions.",
       "event_id": "evt_0002",
@@ -43,7 +43,7 @@
     },
     {
       "source_message_ids": [
-        8
+        7
       ],
       "anonymized_text": "Followed up with patient [PERSON]. [AGE] on his TB medication adherence. He has been taking his doses as scheduled.",
       "event_id": "evt_0003",
@@ -63,7 +63,7 @@
     },
     {
       "source_message_ids": [
-        10
+        9
       ],
       "anonymized_text": "Delivered mosquito nets to 8 households in the Shibuye area, all households confirmed receipt.",
       "event_id": "evt_0004",
@@ -83,7 +83,7 @@
     },
     {
       "source_message_ids": [
-        12
+        11
       ],
       "anonymized_text": "Attempted a follow-up call to beneficiary at [PHONE] regarding the seed distribution, no answer, will try again tomorrow.",
       "event_id": "evt_0005",
@@ -103,7 +103,7 @@
     },
     {
       "source_message_ids": [
-        14
+        13
       ],
       "anonymized_text": "Provided prenatal checkup for [PERSON] at her home, pregnancy progressing normally, next visit scheduled in 2 weeks.",
       "event_id": "evt_0006",
@@ -123,7 +123,7 @@
     },
     {
       "source_message_ids": [
-        16
+        15
       ],
       "anonymized_text": "Ran a hygiene and handwashing training for 20 schoolchildren at the local primary school today.",
       "event_id": "evt_0007",
@@ -143,7 +143,7 @@
     },
     {
       "source_message_ids": [
-        17
+        16
       ],
       "anonymized_text": "🙏 blessings to everyone, stay safe out there today",
       "event_id": "evt_0008",
@@ -163,7 +163,7 @@
     },
     {
       "source_message_ids": [
-        18
+        17
       ],
       "anonymized_text": "Distributed 15 food packages to households affected by the recent flooding near the river.",
       "event_id": "evt_0009",
@@ -183,7 +183,7 @@
     },
     {
       "source_message_ids": [
-        20
+        19
       ],
       "anonymized_text": "Checked in on elderly beneficiary [AGE] who received livelihood support last month, chickens are doing well and she sold eggs at the market.",
       "event_id": "evt_0010",
@@ -203,7 +203,7 @@
     },
     {
       "source_message_ids": [
-        22
+        21
       ],
       "anonymized_text": "Completed intake for a new household referred by the local chief, 5 members, will schedule first livelihood assessment visit next week.",
       "event_id": "evt_0011",
@@ -223,7 +223,7 @@
     },
     {
       "source_message_ids": [
-        24
+        23
       ],
       "anonymized_text": "Gave out seed packets (maize and beans) to 10 farmers in the cooperative as planned.",
       "event_id": "evt_0012",
@@ -243,7 +243,7 @@
     },
     {
       "source_message_ids": [
-        26
+        25
       ],
       "anonymized_text": "Also confirming [PERSON]'s homestead received the 2 goats from the livelihood program today, she seemed very pleased.",
       "event_id": "evt_0013",
@@ -263,7 +263,7 @@
     },
     {
       "source_message_ids": [
-        28
+        27
       ],
       "anonymized_text": "Updated [PERSON]'s contact number in our records to 0712.345.678 after her follow-up visit.",
       "event_id": "evt_0014",
@@ -283,8 +283,8 @@
     },
     {
       "source_message_ids": [
-        29,
-        30
+        28,
+        29
       ],
       "anonymized_text": "Delivered mosquito nets to 6 households in Emuhaya. Also started a new training session for 12 farmers on composting.",
       "event_id": "evt_0015",
@@ -304,7 +304,7 @@
     },
     {
       "source_message_ids": [
-        31
+        30
       ],
       "anonymized_text": "Checking on the [PERSON] household's new goat shed construction.",
       "event_id": "evt_0016",
@@ -324,7 +324,7 @@
     },
     {
       "source_message_ids": [
-        32
+        31
       ],
       "anonymized_text": "Materials for the shed were enough, roofing to finish tomorrow.",
       "event_id": "evt_0017",
@@ -344,7 +344,7 @@
     },
     {
       "source_message_ids": [
-        33
+        32
       ],
       "anonymized_text": "Helped repair the community borehole pump so it works again.",
       "event_id": "evt_0018",
@@ -364,7 +364,7 @@
     },
     {
       "source_message_ids": [
-        34
+        33
       ],
       "anonymized_text": "Gave out twenty two blankets to families affected by the cold weather.",
       "event_id": "evt_0019",
@@ -384,7 +384,7 @@
     },
     {
       "source_message_ids": [
-        35
+        34
       ],
       "anonymized_text": "The family refused the proposed support and asked us not to return.",
       "event_id": "evt_0020",
@@ -404,7 +404,7 @@
     },
     {
       "source_message_ids": [
-        36
+        35
       ],
       "anonymized_text": "Circling back — the goat handover at the Achieng place went well earlier today.",
       "event_id": "evt_0021",
@@ -424,7 +424,7 @@
     },
     {
       "source_message_ids": [
-        37
+        36
       ],
       "anonymized_text": "Visited the [PERSON] family, gave 2 goats as part of the livelihood program, they were thrilled.",
       "event_id": "evt_0022",
@@ -445,67 +445,67 @@
   ],
   "irrelevant_messages": [
     {
-      "message_id": 1,
+      "message_id": 0,
       "anonymized_text": "Good morning team! Hope everyone slept well 😊",
       "confidence": 0.9291
     },
     {
-      "message_id": 2,
+      "message_id": 1,
       "anonymized_text": "Morning! Ready for today's visits",
       "confidence": 0.5327
     },
     {
-      "message_id": 5,
+      "message_id": 4,
       "anonymized_text": "lol did anyone see the match last night, that final goal was crazy",
       "confidence": 0.6444
     },
     {
-      "message_id": 7,
+      "message_id": 6,
       "anonymized_text": "Can someone send me the WiFi password for the office again",
       "confidence": 0.7462
     },
     {
-      "message_id": 9,
+      "message_id": 8,
       "anonymized_text": "Happy birthday [PERSON]!! 🎉🎂 hope you have a great one",
       "confidence": 0.7508
     },
     {
-      "message_id": 11,
+      "message_id": 10,
       "anonymized_text": "thank you so much everyone, this group is the best",
       "confidence": 0.7464
     },
     {
-      "message_id": 13,
+      "message_id": 12,
       "anonymized_text": "ugh traffic is so bad today, going to be late to the next stop",
       "confidence": 0.5228
     },
     {
-      "message_id": 15,
+      "message_id": 14,
       "anonymized_text": "anyone have a good recipe for ugali, want to try something new tonight",
       "confidence": 0.8858
     },
     {
-      "message_id": 19,
+      "message_id": 18,
       "anonymized_text": "what time is tomorrow's team meeting again?",
       "confidence": 0.9463
     },
     {
-      "message_id": 21,
+      "message_id": 20,
       "anonymized_text": "haha this meme is so funny, sending it to the group",
       "confidence": 0.9168
     },
     {
-      "message_id": 23,
+      "message_id": 22,
       "anonymized_text": "it's so hot today, can't wait to get some shade",
       "confidence": 0.5144
     },
     {
-      "message_id": 25,
+      "message_id": 24,
       "anonymized_text": "see you all tomorrow, have a good evening!",
       "confidence": 0.9114
     },
     {
-      "message_id": 27,
+      "message_id": 26,
       "anonymized_text": "Sorted the usual with the [PERSON] family, all good.",
       "confidence": 0.8338
     }
