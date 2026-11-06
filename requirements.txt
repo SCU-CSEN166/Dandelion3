@@ -1,3 +1,7 @@
+torch
+transformers>=4.40
+accelerate
+pytest
 transformers>=4.57
 torch>=2.8
 pytest>=7.0
