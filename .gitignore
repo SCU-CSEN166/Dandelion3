@@ -1,5 +1,2 @@
-.venv/
 __pycache__/
-*.pyc
-.pytest_cache/
-data/synthetic/raw_audio/
+output/
