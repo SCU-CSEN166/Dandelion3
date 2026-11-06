@@ -18,10 +18,8 @@ All project data is **synthetic**. The team writes example activity reports and 
 All names, ages, locations, and phone numbers in these messages are made up. We still anonymize them before including them in README examples. No real PII, credentials, or API keys are committed. Synthetic audio and text are stored in `data/synthetic/`; raw recordings are gitignored, and only anonymized examples are checked in.
 
 ### Known limitations
-- Sathvik's message parser and Roland's mid-pipeline (anonymize → relevance filter → segment → extract → dedup) are implemented; ASR and the confidence-routing/human-review queue are not built yet.
-- Attribute extraction and deduplication use keyword/regex and embedding-similarity baselines, not the Llama-based approach from the Week 5 plan (no local LLM runtime set up yet — see Week 6 "Implementation status").
-- BERT-based NER anonymization initially under-redacted unfamiliar (non-Western) names split across subword boundaries; mitigated with a word-boundary extension fix, but this is a real failure mode worth more testing.
-- All thresholds (relevance confidence, dedup similarity, segmentation time window) are tuned on a 26-message synthetic set — too small to trust as real numbers yet.
+- Sathvik's message parser and Roland's relevance classifier are implemented; ASR, anonymization, event segmentation, attribute extraction, dedup, and confidence routing are not built yet.
+- The relevance classifier has only been tested on 24 team-written synthetic messages — too small to trust the 0.957 F1 as a real estimate yet.
 - Our synthetic data may not reflect messages that mix English with Swahili or Dholuo, background noise, overlapping speakers, or the activity categories Dandelion Africa uses.
 - We can only test accents spoken by the volunteers we find (no audio data yet — text only so far).
 
@@ -101,51 +99,44 @@ All names, ages, locations, and phone numbers in these messages are made up. We 
 
 ### Implementation status
 
-> This section covers **Roland's scope**: anonymization, relevance filtering, event segmentation, attribute extraction, and deduplication (pipeline steps 3–7), now integrated with **Sathvik's ingestion step** (`src/parser.py`, `src/asr.py`) and **Ronav's review layer** (`src/activity_baseline.py`) — the full three-person chain runs end to end as of this week.
+The classifier and Ronav's data formatting baseline are described below. They run separately for now.
 
-- **What runs end-to-end now?** `src/pipeline.py` calls Sathvik's `parser.py` to parse the raw WhatsApp export (not a separate copy of parsing logic — this is the real shared ingestion code), then runs: **anonymize** (BERT NER + regex) → **relevance-filter** (zero-shot BART-MNLI) → **segment** relevant messages into events (same-sender/time-window rule) → **extract attributes** (keyword/regex baseline — see note below) → **deduplicate** events (MiniLM sentence-embedding similarity). It outputs one shared JSON file for the rest of the team. ASR (`src/asr.py`, Whisper) is wired in for voice notes but untested on real audio — our synthetic data is text-only so far.
-- **Why rule-based extraction instead of Llama:** the Week 5 plan calls for a schema-constrained Llama-3.1-8B prompt for attribute extraction. This machine has 16GB RAM, which isn't enough to run the full model locally, and setting up a quantized local runtime (Ollama) was out of scope for this week — so attribute extraction and dedup use keyword/regex and sentence-embedding baselines instead, which the Week 5 plan already listed as fallback options. Swapping in the LLM version is the planned next step.
+- **What runs end-to-end now?** `src/relevance_classifier.py` reads a WhatsApp-export-style text file, parses it into individual messages, and classifies each one as a real field-activity report ("relevant") or chit-chat ("irrelevant") using zero-shot classification — this is pipeline step 4 from the Week 5 plan. No ASR, anonymization, segmentation, extraction, or dedup yet (outside Roland's scope this week).
 - **How to run it:**
   ```bash
   cd Dandelion3
   python3 -m venv .venv && source .venv/bin/activate
   pip install -r requirements.txt
-  python src/pipeline.py \
+  python src/relevance_classifier.py \
     --input data/synthetic/whatsapp_export.txt \
-    --output outputs/pipeline_output.json \
-    --events-output outputs/events_for_review.json
-
-  # full 3-person chain: ingestion -> mid-pipeline -> Ronav's review layer
-  python src/activity_baseline.py outputs/events_for_review.json outputs/reviewed_events.json
+    --output outputs/relevance_predictions.jsonl \
+    --gold data/synthetic/gold_labels.jsonl
   ```
-- **Model(s) and data actually used:** [facebook/bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli) (relevance), [dslim/bert-base-NER](https://huggingface.co/dslim/bert-base-NER) (anonymization), [sentence-transformers/all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) (dedup similarity), run on `data/synthetic/whatsapp_export.txt` — 37 team-authored synthetic messages, including a two-message event thread, a same-event duplicate reported by a different sender later, and 11 deliberately adversarial cases (messages 27–37) designed to probe each step's failure modes. **See [`TESTING.md`](TESTING.md)** for every threshold used, what each test checks, and the real success/failure result of each adversarial case.
-- **Example 1 (segmentation + extraction):** Input: messages 3+4, `"Visited Mama Achieng's homestead today, gave 2 goats... Also left some information pamphlets..."` → Output: one event, `{"activity_type": "livelihood_distribution", "date": "2026-02-03", "quantity": "2 goats", "outcome": "positive"}`, anonymized to `"Visited [PERSON]'s homestead..."`.
-- **Example 2 (deduplication):** Message 26, `"Also confirming Mama Achieng's homestead received the 2 goats from the livelihood program today..."` (a different sender, reported ~4.5 hours later) → flagged `"duplicate_of": "evt_0001"` with similarity 0.80, well clear of the next-highest unrelated-event similarity (0.48).
-- **The known false positive from last week** (the "🙏 blessings, stay safe" message, still misclassified as relevant at 0.51 confidence) flows all the way through: event segmentation gives it its own event, and attribute extraction correctly returns `"activity_type": "other"` with every other field `null` — i.e. the rule-based extractor doesn't hallucinate structure onto a message that doesn't have any, which is reassuring, but a human reviewer would still need a confidence threshold to catch it before it ever reaches that stage.
+- **Model(s) and data actually used:** [facebook/bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli) (zero-shot classification, as proposed in the Week 5 plan), run on `data/synthetic/whatsapp_export.txt` — 24 team-authored synthetic messages (12 relevant / 12 irrelevant) with `data/synthetic/gold_labels.jsonl` as the gold labels.
+- **Example 1:** Input: `"Visited Mama Achieng's homestead today, gave 2 goats as part of the livelihood program. She was 67 years old and very happy with the support."` → Output: `relevant` (confidence 0.942)
+- **Example 2:** Input: `"anyone have a good recipe for ugali, want to try something new tonight"` → Output: `irrelevant` (confidence 0.886)
 
-**Ronav's review layer** (`src/activity_baseline.py`) keeps JSON fields consistent, removes exact duplicates, groups messages sharing an `activity_key` (not produced by the pipeline yet, so this doesn't do anything further right now — every event stays its own group), and flags events for review via a confidence score. It has its own small fixture to run standalone:
+**Ronav's data formatting baseline:** I added a baseline that keeps JSON fields consistent, removes exact duplicates, and groups messages with the same activity key. It uses simple confidence rules to flag missing or conflicting information for review. It still needs to be connected to the classifier's output.
+
+Run it from the project folder:
+
 ```bash
 python3 src/activity_baseline.py data/synthetic/classified_messages.json activities.json
 ```
-That example produces one activity (distributing 2 goats in Kakamega) with confidence 0.94 and no review flag — but see the real numbers above from running it against all 22 of our actual pipeline events (`outputs/reviewed_events.json`): 91% get flagged, mostly over a missing `location` field.
+
+The included synthetic example produces one activity for distributing 2 goats in Kakamega, with a confidence score of 0.94 and no review flag. The output is saved in `activities.json`.
 
 ### Attempts and outcomes
 | Attempt / change | Worked? (Yes / Partly / No) | Evidence (output, metric, link) | What we learned / next step |
 |---|---|---|---|
-| Zero-shot relevance classifier (`facebook/bart-large-mnli`) on 37 synthetic messages | Yes | Precision 0.958, recall 0.958, F1 0.958 against `gold_labels.jsonl` (`outputs/relevance_predictions.jsonl`) | Still above the Week 5 target (F1 ≥ 0.8) even after adding a deliberately vague message (#27) that it now misses. |
-| Anonymization with `dslim/bert-base-NER` | Partly | First pass left fragments of unfamiliar names unredacted (`"Lilian"` → `"[PERSON]ian"`), and a follow-up test found the model sometimes splits one name into 2-3 separate entities, which corrupted text (`"[PERSON]N]N]"`) once each fragment was redacted independently. Fixed both with span extension + merging (see `src/anonymize.py`); regression tests in `tests/test_anonymize.py`. | Real finding: BERT-base-NER (trained mostly on Western names) handles unfamiliar names unreliably at the tokenizer level — a genuine privacy failure mode worth flagging for Week 9's Responsible-AI review, even though our fixes mitigate it here. A dot-separated phone number (`0712.345.678`, case 28) still isn't caught by the regex — unfixed, documented in `TESTING.md`. |
-| Event segmentation (same-sender, ≤10 min rule) | Partly | Messages 3+4 merge correctly (intended case). But a deliberately adversarial pair 3 minutes apart (cases 29/30) got wrongly merged despite being two *different* activities, and a real continuation 12 minutes apart (cases 31/32) got wrongly split. | Confirms the rule has no topic awareness — it's purely time/sender-based, and both directions of that limitation are now demonstrated with real examples (not hypothetical). See `TESTING.md`. |
-| Attribute extraction (rule/regex baseline) | Partly | Clean cases extract correctly (goats, training, etc.). Adversarial cases found real gaps: an activity with no matching keyword falls back to `"other"` (case 33, correctly honest, but a coverage gap); a quantity written in words is missed entirely (case 34); a negative outcome isn't distinguished from "unknown" (case 35); an un-redacted phone number got misread as a quantity (case 28). | None of these are hallucinations (good — it never invents a plausible-but-wrong value), but the keyword coverage is clearly incomplete. Full list in `TESTING.md`. |
-| Deduplication with MiniLM embeddings | Partly | The real duplicate (message 26) is still caught (0.80 similarity). But a heavily-paraphrased true duplicate (case 36) scored only 0.296 and was missed, and a genuinely *different* beneficiary with similar phrasing (case 37) was wrongly flagged at 0.81 similarity — because anonymization had stripped the one detail (the name) that would have told them apart. | Important finding, not just a threshold-tuning problem: anonymization and deduplication can actively work against each other. Worth a real design discussion before Week 8. See `TESTING.md`. |
-| Integrated with Sathvik's `parser.py`/`asr.py` instead of maintaining a separate parser | Partly | Pipeline output is identical (22 events, 2 duplicates, 13 filtered) to the standalone version, confirming the integration itself is correct — but it only produced correct dates after a real bug was found and fixed: his date auto-detection defaulted to month-first on our day-first data (`03/02/2026` read as March 2, not Feb 3), because nothing in our dates was unambiguous enough to detect the convention. | Added an opt-in `dayfirst` parameter to `parse_chat()` rather than changing its default (his existing tests still pass). Full details in `TESTING.md`. |
-| Chained into Ronav's `activity_baseline.py` (confidence/review layer) | Partly | His script crashed on our actual output (`outputs/pipeline_output.json`) — it expects a bare list of events, we hand back a dict wrapper. Fixed by adding `pipeline.py --events-output` to also write the bare list it expects. Once that worked, it flagged **20 of our 22 real events (91%) as `needs_review`** — almost entirely because `location` is usually `None` (our extractor only recognizes 2 place names). | Not a bug exactly — more that "missing location" and "genuinely uncertain extraction" aren't the same thing, and his trigger treats them the same. At 91% flagged, the review queue isn't triaging anything. Real Week 7 discussion item, not something to silently patch on either side. Full details in `TESTING.md`. |
+| Zero-shot relevance classifier (`facebook/bart-large-mnli`) on 24 synthetic messages | Yes | Precision 0.917, recall 1.0, F1 0.957 against `gold_labels.jsonl` (`outputs/relevance_predictions.jsonl`) | Already above the Week 5 target (F1 ≥ 0.8) on this small set. The one false positive was a "🙏 blessings, stay safe" message classified `relevant` at only 0.51 confidence — right at the decision boundary, so a confidence threshold (e.g. route anything < 0.6 to human review) should catch this kind of borderline case instead of silently misclassifying it. Next: grow the synthetic set past 24 messages and re-check F1 holds up. |
 
 ### Individual contributions during that week
 | Member | What I personally implemented/tested | Result (worked / partly / failed) | Evidence (commit, PR, experiment) | Blocker / next step |
 |---|---|---|---|---|
-| Roland Breise | Built anonymization, relevance filtering, event segmentation, attribute extraction, and deduplication (`src/anonymize.py`, `src/relevance_classifier.py`, `src/segment.py`, `src/extract.py`, `src/dedup.py`), wired into `src/pipeline.py`; integrated it with Sathvik's real ingestion (`parser.py`) and Ronav's review layer (`activity_baseline.py`), finding and fixing real bugs/mismatches in both handoffs along the way; expanded the synthetic dataset to 37 messages including 11 adversarial cases; 23 passing tests; documented every threshold and all success/failure results in `TESTING.md` | Worked | `outputs/`, `tests/`, `TESTING.md` | No blocker. Next: swap rule-based extraction for Llama once Ollama is set up; resolve the anonymization/dedup tension and the 91%-review-flag-rate issue found in `TESTING.md` |
-| Sathvik Kumar | Added a WhatsApp/iOS/Android parser with audio-attachment support (`src/parser.py`), a Whisper ASR step (`src/asr.py`), a JSON chat loader (`src/json_loader.py`), and an earlier simpler parser (`src/parse_messages.py`) | Worked | [src/parser.py](https://github.com/SCU-CSEN166/Dandelion3/blob/main/src/parser.py) | Implement AI models and tests |
-| Ronav Poonekar | Added consistent JSON formatting, activity grouping, exact-duplicate removal, and confidence/review rules (`src/activity_baseline.py`), tested first on his own synthetic example (`data/synthetic/classified_messages.json`, commit `2aa0459`) and now connected to Roland's real pipeline output | Worked (with caveats — see `TESTING.md`'s 91%-flag-rate finding) | [src/activity_baseline.py](https://github.com/SCU-CSEN166/Dandelion3/blob/main/src/activity_baseline.py) | Revisit the review-trigger logic so "missing field" and "genuinely low confidence" aren't treated the same |
+| Roland Breise | Wrote the synthetic WhatsApp dataset (`data/synthetic/whatsapp_export.txt` + gold labels) and the relevance classifier (`src/relevance_classifier.py`, zero-shot BART-MNLI) | Worked | F1 0.957 on the 24-message dev set; see `outputs/relevance_predictions.jsonl` | No blocker. Next: expand the synthetic dataset (more messages, more activity types, more borderline cases) and add a confidence-threshold rule for the human-review queue |
+| Sathvik Kumar | Added a WhatsApp message parser (`src/parse_messages.py`) and sample data (`data/synthetic/sample_messages.json`) | Worked | [data/synthetic](https://github.com/SCU-CSEN166/Dandelion3/tree/main/data/synthetic) | Implement AI models and tests |
+| Ronav Poonekar | Added consistent JSON formatting, activity grouping, exact duplicate removal, and confidence/review rules | Worked on synthetic examples | `src/activity_baseline.py`, `data/synthetic/classified_messages.json`; commit `2aa0459` | Connect to the classifier's output and test more cases |
 
 ---
 
@@ -253,7 +244,7 @@ That example produces one activity (distributing 2 goats in Kakamega) with confi
 ## Setup and Reproducibility (keep updated)
 
 ### Requirements
-Python 3.9+. Libraries: `transformers`, `torch`, `sentence-transformers`, `pytest` (see `requirements.txt`). No GPU required — everything runs on CPU (or Apple Silicon MPS) for a dataset this small; models (~1.6GB BART-MNLI + ~420MB BERT-NER + ~90MB MiniLM) download automatically from Hugging Face on first run.
+Python 3.9+. Libraries: `transformers`, `torch` (see `requirements.txt`). No GPU required — `facebook/bart-large-mnli` runs on CPU (or Apple Silicon MPS) for a dataset this small; the model (~1.6GB) downloads automatically from Hugging Face on first run.
 
 ### Installation
 ```bash
@@ -263,44 +254,38 @@ pip install -r requirements.txt
 
 ### Run the system
 ```bash
-python src/pipeline.py \
+python src/relevance_classifier.py \
   --input data/synthetic/whatsapp_export.txt \
-  --output outputs/pipeline_output.json
+  --output outputs/relevance_predictions.jsonl
 ```
-This runs Roland's full scope end-to-end (anonymize → relevance filter → segment → extract → dedup) and writes the shared JSON handoff format described in Week 6 below. The standalone relevance-only classifier (`src/relevance_classifier.py`, same CLI shape with `--gold` for evaluation) still works on its own if you just want that one step.
+
+### Run evaluation
+```bash
+python src/relevance_classifier.py \
+  --input data/synthetic/whatsapp_export.txt \
+  --output outputs/relevance_predictions.jsonl \
+  --gold data/synthetic/gold_labels.jsonl
+```
 
 ### Run tests
 ```bash
 python -m pytest tests/ -v
 ```
-23 tests (Sathvik's 3 parser tests + Roland's 20) across ingestion, each pipeline step, and two end-to-end integration tests — one covering just the mid-pipeline, one covering the full three-person chain (ingestion → mid-pipeline → Ronav's review layer). Most need the real models (they'll download on first run); a few pure-logic ones (regex redaction, scoring math) don't. See [`TESTING.md`](TESTING.md) for exactly what each test checks and every threshold used.
+The first three tests check the WhatsApp parser and the precision/recall/F1 scoring logic directly (fast, no model needed). The last test is a real integration check — it runs `facebook/bart-large-mnli` on `data/synthetic/whatsapp_export.txt` and fails if F1 drops below the Week 5 target (0.8).
 
 ### Repository structure
 ```text
 Dandelion3/
 ├── README.md
-├── TESTING.md             # Roland: thresholds + test coverage + adversarial-case results
 ├── requirements.txt
 ├── data/
-│   └── synthetic/        # Roland: synthetic WhatsApp text + gold labels | Sathvik: sample_messages.json
+│   └── synthetic/        # Roland: synthetic WhatsApp text + gold labels
 ├── src/
-│   ├── parser.py                 # Sathvik: ingestion (WhatsApp .txt parser, Android/iOS)
-│   ├── asr.py                    # Sathvik: Whisper transcription of voice notes
-│   ├── json_loader.py            # Sathvik: JSON-format chat loader
-│   ├── run_parse_asr.py          # Sathvik: CLI for ingestion+ASR alone
-│   ├── parse_messages.py         # Sathvik: earlier/simpler ingestion (kept for sample_messages.json)
-│   ├── relevance_classifier.py   # Roland: relevance-filtering (+ standalone WhatsApp parser)
-│   ├── anonymize.py              # Roland: PII redaction (BERT NER + regex)
-│   ├── segment.py                # Roland: event segmentation
-│   ├── extract.py                # Roland: attribute extraction (rule-based baseline)
-│   ├── dedup.py                  # Roland: deduplication (MiniLM embeddings)
-│   ├── pipeline.py               # Roland: real end-to-end system (uses Sathvik's parser.py)
-│   └── activity_baseline.py      # Ronav: confidence/review layer, consumes Roland's events
-├── tests/                # 23 tests: 3 Sathvik's (parser) + 1 cross-team + 19 Roland's
+│   └── relevance_classifier.py   # Roland: relevance-filtering baseline
+├── tests/
+│   └── test_relevance_classifier.py   # Roland: parser + scoring + F1-threshold tests
 └── outputs/
-    ├── pipeline_output.json      # Roland's full output: {events, irrelevant_messages}
-    ├── events_for_review.json    # bare events list -- the shape activity_baseline.py expects
-    └── reviewed_events.json      # result of running the full 3-person chain end to end
+    └── relevance_predictions.jsonl
 ```
 
 
