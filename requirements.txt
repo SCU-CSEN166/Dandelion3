@@ -1,3 +1,4 @@
 transformers>=4.57
 torch>=2.8
+sentence-transformers>=3.0
 pytest>=7.0
