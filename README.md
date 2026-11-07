@@ -164,7 +164,8 @@ Other relevant numbers/notes:
 ### Successes, failures, and interpretation
 | Example / category | Expected behavior | Actual behavior | Success or failure? | Likely reason |
 |---|---|---|---|---|
-| [Case] | [Expected] | [Observed] | [Status] | [Hypothesis] |
+| Segmentation + dedup | two message goat distribution report merges into one event and a later independet re confirmation of the same event gets recognized as a duplicate of it | It worked properly | Success | same sender/time window segmentatino handled the straightforward case and there was enough shared vocab it had no issues. |
+| Dedup false positive | A different beneficiary getting 2 goats is a separate real even from Achieng's goat distribution, even though both are the same activity type and quantity | Flagged as duplicate_of the Achieng event at 0.81 similarity and they were wrongly merged | Failure | Anonymization redacts the one detail that would have told the two events apart so after redaction the texts are almost identical. Anonymization and dedup are working against eachother here which needs a solution. |
 
 - **What improved?** We went from a standalone relevenace classifier to the full chain running end to end. Held F1 score steady over improved dataset. found and fixed pipeline bugs 
 - **What did not improve?** Segmentation topics blindness has the same bugs and merges unrelated activities. Extraction keyword coverage does not work for unlisted activity types and so forth. We will probably pivot from this approach. The 91% review flag rate needs to be fixed and we need to properly classify what "needs review" before we can make sure the number is reasonable. 
