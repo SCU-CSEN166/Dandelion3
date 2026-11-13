@@ -35,9 +35,21 @@ def run_pipeline(
     relevance_model: str = "facebook/bart-large-mnli",
     ner_model: str = "dslim/bert-base-NER",
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+    asr_model: str = "openai/whisper-small",
     dayfirst: bool = True,
+    audio_dir=None,
 ) -> dict:
-    raw_messages = parse_chat(input_path, dayfirst=dayfirst)
+    raw_messages = parse_chat(input_path, audio_dir=audio_dir, dayfirst=dayfirst)
+
+    # Step 2: ASR -- transcribe any voice notes that don't already have a
+    # transcript (e.g. from a JSON loader that pre-filled one).
+    to_transcribe = [m for m in raw_messages if m.is_voice_note and m.transcript is None and m.audio_path]
+    if to_transcribe:
+        from asr import Transcriber, transcribe_messages
+
+        print(f"Transcribing {len(to_transcribe)} voice note(s) with {asr_model}...")
+        transcribe_messages(to_transcribe, Transcriber(asr_model))
+
     messages = [
         {"id": m.msg_id, "timestamp": m.timestamp, "sender": m.sender, "text": _message_text(m)}
         for m in raw_messages
@@ -99,6 +111,8 @@ def main():
     parser.add_argument("--relevance-model", default="facebook/bart-large-mnli")
     parser.add_argument("--ner-model", default="dslim/bert-base-NER")
     parser.add_argument("--embedding-model", default="sentence-transformers/all-MiniLM-L6-v2")
+    parser.add_argument("--asr-model", default="openai/whisper-small", help="Used only if the input has voice notes without an existing transcript.")
+    parser.add_argument("--audio-dir", type=Path, default=None, help="Folder with audio attachments (default: the input file's folder).")
     parser.add_argument(
         "--events-output",
         type=Path,
@@ -108,7 +122,10 @@ def main():
     )
     args = parser.parse_args()
 
-    output = run_pipeline(args.input, args.relevance_model, args.ner_model, args.embedding_model)
+    output = run_pipeline(
+        args.input, args.relevance_model, args.ner_model, args.embedding_model,
+        args.asr_model, audio_dir=args.audio_dir,
+    )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as f:

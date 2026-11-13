@@ -5,3 +5,7 @@ __pycache__/
 data/synthetic/raw_audio/
 output/
 notes/
+drive-download-*/
+drive-download-*.zip
+*.mp4
+.DS_Store
