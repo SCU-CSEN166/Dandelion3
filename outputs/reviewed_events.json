@@ -21,10 +21,12 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9435,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -51,7 +53,9 @@
     "confidence": {
       "score": 0.9428,
       "needs_review": false,
-      "reasons": []
+      "reasons": [],
+      "suggested_review": false,
+      "suggestions": []
     }
   },
   {
@@ -78,7 +82,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -105,7 +113,9 @@
     "confidence": {
       "score": 0.9556,
       "needs_review": false,
-      "reasons": []
+      "reasons": [],
+      "suggested_review": false,
+      "suggestions": []
     }
   },
   {
@@ -132,7 +142,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -157,10 +171,12 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9548,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -185,10 +201,12 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9926,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -216,8 +234,12 @@
       "score": 0.5145,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity",
+        "Missing fields: quantity",
         "Low relevance confidence"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -242,10 +264,12 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9763,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -273,7 +297,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -298,10 +326,12 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9318,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -326,10 +356,12 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9634,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -350,14 +382,16 @@
       "quantity": "2 goats",
       "outcome": "positive"
     },
-    "duplicate_of": null,
-    "duplicate_confidence": null,
+    "duplicate_of": "evt_0001",
+    "duplicate_confidence": 0.7999,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9353,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -382,11 +416,14 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
+      "score": 0.6668,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location",
         "Low relevance confidence"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -412,10 +449,12 @@
     "duplicate_confidence": null,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9645,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -443,7 +482,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -471,8 +514,12 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity",
+        "Missing fields: quantity",
         "Low relevance confidence"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -500,7 +547,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -528,7 +579,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -556,7 +611,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -584,7 +643,11 @@
       "score": 0.6,
       "needs_review": true,
       "reasons": [
-        "Missing fields: location, quantity"
+        "Missing fields: quantity"
+      ],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   },
@@ -605,14 +668,16 @@
       "quantity": "2 goats",
       "outcome": "unknown"
     },
-    "duplicate_of": null,
-    "duplicate_confidence": null,
+    "duplicate_of": "evt_0001",
+    "duplicate_confidence": 0.8068,
     "conflicts": {},
     "confidence": {
-      "score": 0.6,
-      "needs_review": true,
-      "reasons": [
-        "Missing fields: location"
+      "score": 0.9367,
+      "needs_review": false,
+      "reasons": [],
+      "suggested_review": true,
+      "suggestions": [
+        "Missing location"
       ]
     }
   }

@@ -154,12 +154,14 @@ The included synthetic example produces one activity for distributing 2 goats in
 | System / version | Relevance F1 | Needs-review flag rate | Notes |
 |---|---:|---:|---|
 | Baseline | 0.957 (24 msgs) | n/a | only single step |
-| Current | 0.958 (37 msgs) | 91% (20/22) | full chain and still similar f1. F1 held for harder data. The needs review flag rate is rather high at the moment as well because we are currently punishing confidence score for missing fields in the json |
+| Current | 0.958 (37 msgs) | 50% (11/22) | F1 held for the harder data. Missing locations now suggest review without lowering confidence; required reviews dropped from 20 to 11. |
 
 Other relevant numbers/notes:
 - Dedup: real duplicate was caught at about 0.8 similarity and a different real event flagged at 0.81 and a highly paraphrased real duplicate missed at 0.296 so this part is rather iffy at the moment
 - Anonymization: 2 bugs found and fixed (name fragment under redaction; overlapping entity text corruption). both are now covered by regression tests.
 - Extraction: no hallucinations observed but there are coverage gaps.
+
+I tested my review layer on the pipeline's 22 events and fixed a bug that cleared duplicate flags. Existing event IDs are now preserved too. Missing locations suggest a review without lowering confidence. Required reviews dropped from 20 to 11, and both upstream duplicate flags were preserved. All 7 new tests passed.
 
 ### Successes, failures, and interpretation
 | Example / category | Expected behavior | Actual behavior | Success or failure? | Likely reason |
@@ -168,7 +170,7 @@ Other relevant numbers/notes:
 | Dedup false positive | A different beneficiary getting 2 goats is a separate real even from Achieng's goat distribution, even though both are the same activity type and quantity | Flagged as duplicate_of the Achieng event at 0.81 similarity and they were wrongly merged | Failure | Anonymization redacts the one detail that would have told the two events apart so after redaction the texts are almost identical. Anonymization and dedup are working against eachother here which needs a solution. |
 
 - **What improved?** We went from a standalone relevenace classifier to the full chain running end to end. Held F1 score steady over improved dataset. found and fixed pipeline bugs 
-- **What did not improve?** Segmentation topics blindness has the same bugs and merges unrelated activities. Extraction keyword coverage does not work for unlisted activity types and so forth. We will probably pivot from this approach. The 91% review flag rate needs to be fixed and we need to properly classify what "needs review" before we can make sure the number is reasonable. 
+- **What did not improve?** Segmentation topics blindness has the same bugs and merges unrelated activities. Extraction keyword coverage does not work for unlisted activity types and so forth. We will probably pivot from this approach. Required reviews dropped to 50%, but we still need to check whether the flags catch actual errors.
 - **Next experiment:** Add a non PII disambiguation token check to deduplicate: before flagging two events as the same we also require their extracted activity_type, quantity and date to match which could fix the false positives we get.
 
 ### Individual contributions during that week
@@ -176,6 +178,7 @@ Other relevant numbers/notes:
 |---|---|---|---|---|
 | Roland | Extended the synthetic dataset with adversarial cases. Found a 3 bugs by running full pipeline and fixed. Completed steps 3-7 of the pipeline| worked partially | test/, outputs/reviewed_events.json, and TESTING.md | pick and run one of the next eperiments |
 | Sathvik Kumar | Added a JSON loader and a Whisper ASR step that turn synthetic messages and voice notes into transcripts.| Partly | https://github.com/SCU-CSEN166/Dandelion3/commits/parse-asr | Test ASR on recorded voice notes and measure WER. |
+| Ronav Poonekar | Fixed metadata preservation and changed missing locations to suggested review | Worked on saved pipeline output; 7 tests passed | `src/activity_baseline.py`, `tests/test_activity_baseline.py` | Manually check more events to see whether confidence rules catch actual errors |
 
 ---
 
@@ -189,9 +192,11 @@ Other relevant numbers/notes:
 
 | Failure case / category | What went wrong | Possible cause | Severity / user impact | Proposed fix |
 |---|---|---|---|---|
-| [Case 1] | [Observation] | [Hypothesis] | [Impact] | [Fix] |
-| [Case 2] | [Observation] | [Hypothesis] | [Impact] | [Fix] |
-| [Case 3] | [Observation] | [Hypothesis] | [Impact] | [Fix] |
+| Missed events | Messages 4 and 10 were marked as chit-chat, but both reported real activities. | The classifier struggled with table banking and a report adding details to an earlier event. | High | Test with more examples of these kinds of reports. |
+| Wrong activity labels | Several events became `follow_up`, and the screening camp became `intake_assessment`. | Words like “follow-up” and “referred” triggered rules even when they weren’t the main activity. | High | Match the main activity instead of the first keyword found. |
+| Missing participant counts | All participant counts were blank. | Our extractor needs digits, but the transcripts used words like “forty-two.” | High | Add support for numbers written as words. |
+| Missed duplicates | Message 2 repeated message 1, and message 10 repeated message 7. Neither was flagged. | The first pair missed the similarity cutoff. Message 10 was dropped before deduplication. | High | Check the similarity cutoff and fix the earlier classification miss. |
+| Locations left visible | Names and phone numbers were masked, but locations stayed in the output. | Our code keeps locations, but this test required masking them. | High | Mask locations too. |
 
 ### Changes attempted after stress-testing
 | Change | Worked? (Yes / Partly / No) | Evidence | Keep, revise, or revert? |
@@ -201,7 +206,7 @@ Other relevant numbers/notes:
 ### Individual contributions during that week
 | Member | Work completed | Result (worked / partly / failed) | Evidence | Next step |
 |---|---|---|---|---|
-| [Name] | [Specific work] | [Status] | [Link] | [Next step] |
+| Sathvik Kumar | Added hidden test cases with voices and tested it | Working | (https://github.com/SCU-CSEN166/Dandelion3/tree/main/data) | Add image testing with visuals |
 
 ---
 

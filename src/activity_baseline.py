@@ -32,11 +32,14 @@ def clean_message(message):
         raise ValueError("Each message needs integer source_message_ids")
 
     return {
+        "event_id": message.get("event_id"),
         "source_message_ids": sorted(set(source_ids)),
         "anonymized_text": message["anonymized_text"].strip(),
         "relevance": message["relevance"].copy(),
         "attributes": attributes,
         "activity_key": message.get("activity_key"),
+        "duplicate_of": message.get("duplicate_of"),
+        "duplicate_confidence": message.get("duplicate_confidence"),
     }
 
 
@@ -56,7 +59,11 @@ def combine_messages(messages, event_id):
             conflicts[field] = values
             reasons.append(f"Conflicting {field}")
 
-    missing = [field for field in FIELDS if attributes[field] is None]
+    # A missing location is worth checking, but doesn't make the other fields less reliable.
+    suggestions = []
+    if attributes["location"] is None:
+        suggestions.append("Missing location")
+    missing = [field for field in FIELDS if field != "location" and attributes[field] is None]
     if missing:
         reasons.append("Missing fields: " + ", ".join(missing))
     relevance = min(message["relevance"]["confidence"] for message in messages)
@@ -82,10 +89,16 @@ def combine_messages(messages, event_id):
         "anonymized_text": "\n".join(texts),
         "relevance": {"label": "relevant", "confidence": relevance},
         "attributes": attributes,
-        "duplicate_of": None,
-        "duplicate_confidence": None,
+        "duplicate_of": messages[0]["duplicate_of"],
+        "duplicate_confidence": messages[0]["duplicate_confidence"],
         "conflicts": conflicts,
-        "confidence": {"score": score, "needs_review": bool(reasons), "reasons": reasons},
+        "confidence": {
+            "score": score,
+            "needs_review": bool(reasons),
+            "reasons": reasons,
+            "suggested_review": bool(suggestions),
+            "suggestions": suggestions,
+        },
     }
 
 
@@ -103,13 +116,24 @@ def process_messages(messages):
             continue
         seen.append(message)
 
-        # A shared activity_key links messages; without one, keep them separate.
-        key = message["activity_key"] or tuple(message["source_message_ids"])
+        # The pipeline has already grouped events with IDs; keep those events separate.
+        if message["event_id"]:
+            key = ("event", message["event_id"])
+        else:
+            key = message["activity_key"] or tuple(message["source_message_ids"])
         groups.setdefault(key, []).append(message)
 
     events = []
+    used_ids = {message["event_id"] for message in seen}
+    next_id = 1
     for messages in groups.values():
-        event = combine_messages(messages, f"evt_{len(events) + 1:04d}")
+        event_id = messages[0]["event_id"]
+        if not event_id:
+            while f"evt_{next_id:04d}" in used_ids:
+                next_id += 1
+            event_id = f"evt_{next_id:04d}"
+            used_ids.add(event_id)
+        event = combine_messages(messages, event_id)
         events.append(event)
     return events
 
