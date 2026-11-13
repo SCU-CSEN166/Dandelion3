@@ -192,9 +192,11 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 
 | Failure case / category | What went wrong | Possible cause | Severity / user impact | Proposed fix |
 |---|---|---|---|---|
-| [Case 1] | [Observation] | [Hypothesis] | [Impact] | [Fix] |
-| [Case 2] | [Observation] | [Hypothesis] | [Impact] | [Fix] |
-| [Case 3] | [Observation] | [Hypothesis] | [Impact] | [Fix] |
+| Missed events | Messages 4 and 10 were marked as chit-chat, but both reported real activities. | The classifier struggled with table banking and a report adding details to an earlier event. | High | Test with more examples of these kinds of reports. |
+| Wrong activity labels | Several events became `follow_up`, and the screening camp became `intake_assessment`. | Words like “follow-up” and “referred” triggered rules even when they weren’t the main activity. | High | Match the main activity instead of the first keyword found. |
+| Missing participant counts | All participant counts were blank. | Our extractor needs digits, but the transcripts used words like “forty-two.” | High | Add support for numbers written as words. |
+| Missed duplicates | Message 2 repeated message 1, and message 10 repeated message 7. Neither was flagged. | The first pair missed the similarity cutoff. Message 10 was dropped before deduplication. | High | Check the similarity cutoff and fix the earlier classification miss. |
+| Locations left visible | Names and phone numbers were masked, but locations stayed in the output. | Our code keeps locations, but this test required masking them. | High | Mask locations too. |
 
 ### Changes attempted after stress-testing
 | Change | Worked? (Yes / Partly / No) | Evidence | Keep, revise, or revert? |
