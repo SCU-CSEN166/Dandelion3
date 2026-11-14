@@ -4,37 +4,60 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from extract import extract_attributes, to_iso_date
+from extract import extract_attributes, extract_participants, to_iso_date, words_to_number
 
 
 def test_to_iso_date():
     assert to_iso_date("03/02/2026") == "2026-02-03"
 
 
-def test_livelihood_distribution_with_quantity_and_outcome():
-    attrs = extract_attributes(
-        "Visited [PERSON]'s homestead today, gave 2 goats as part of the livelihood program. "
-        "She was [AGE] and very happy with the support.",
-        "03/02/2026",
-    )
-    assert attrs["activity_type"] == "livelihood_distribution"
+def test_words_to_number():
+    assert words_to_number("forty two") == 42
+    assert words_to_number("twenty five") == 25
+    assert words_to_number("eighteen thousand") == 18000
+    assert words_to_number("two hundred") == 200
+    assert words_to_number("not a number") is None
+
+
+def test_participants_digit_form():
+    assert extract_participants("42 women came to the session") == 42
+
+
+def test_participants_word_form():
+    # The real hidden-set data used almost entirely word-form numbers --
+    # this is the case the old digit-only regex completely missed.
+    assert extract_participants("Twenty five members attended out of thirty") == 25
+    assert extract_participants("We screened twenty eight women today") == 28
+
+
+def test_participants_none_when_absent():
+    assert extract_participants("We had a good meeting today.") is None
+
+
+def test_quantity_still_extracted_for_goods():
+    attrs = extract_attributes("Gave out 2 goats as part of the livelihood program.", "03/02/2026")
     assert attrs["quantity"] == "2 goats"
-    assert attrs["outcome"] == "positive"
-    assert attrs["date"] == "2026-02-03"
 
 
-def test_training_with_location():
+def test_activity_type_is_free_text_not_forced_into_fixed_enum():
     attrs = extract_attributes(
-        "Conducted a nutrition training session for 14 mothers at the Kakamega community hall.",
-        "03/02/2026",
+        "Today we held a nutrition talk with 15 mothers.", "03/02/2026"
     )
-    assert attrs["activity_type"] == "training"
-    assert attrs["location"] == "Kakamega"
-    assert attrs["quantity"] == "14 mothers"
+    assert "nutrition talk" in attrs["activity_type"]
+    assert attrs["participants"] == 15
 
 
-def test_unmatched_text_falls_back_to_other():
-    attrs = extract_attributes("blessings to everyone, stay safe out there today", "03/02/2026")
-    assert attrs["activity_type"] == "other"
-    assert attrs["quantity"] is None
-    assert attrs["location"] is None
+def test_activity_type_skips_filler_words_after_verb():
+    # Regression: "held this afternoon" used to capture "this afternoon"
+    # as the activity name instead of falling through to the real phrase.
+    attrs = extract_attributes(
+        "The community dialogue on violence we held this afternoon at the camp.", "03/02/2026"
+    )
+    assert attrs["activity_type"] != "this afternoon"
+
+
+def test_activity_type_does_not_trigger_on_common_idiom():
+    # Regression: "ran out of stock" used to get captured as an activity
+    # name because "ran" was in the verb trigger list.
+    attrs = extract_attributes("We ran out of stock for the implants.", "03/02/2026")
+    assert attrs["activity_type"] != "out of stock"

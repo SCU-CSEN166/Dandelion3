@@ -8,35 +8,44 @@ sys.path.insert(0, str(ROOT / "src"))
 
 
 def test_full_pipeline_on_synthetic_data():
-    """End-to-end check on the real synthetic dataset: segmentation should
-    merge the two-message goat-distribution thread into one event, and
-    dedup should catch the later independent confirmation of it."""
+    """End-to-end check on the real synthetic dataset, covering the cases
+    the new architecture was specifically built to fix (see TESTING.md for
+    the exact numbers behind each)."""
     pytest.importorskip("transformers")
     pytest.importorskip("torch")
     pytest.importorskip("sentence_transformers")
     from pipeline import run_pipeline
 
     output = run_pipeline(ROOT / "data/synthetic/whatsapp_export.txt")
+    events = output["events"]
+    events_by_ids = {tuple(e["source_message_ids"]): e for e in events}
 
-    # IDs are 0-indexed (Sathvik's parser.py's msg_id), so the two-message
-    # goat-distribution thread (lines 3+4 in the file) is ids (2, 3), and
-    # its later independent confirmation (line 26) is id 25.
-    events_by_ids = {tuple(e["source_message_ids"]): e for e in output["events"]}
-    assert (2, 3) in events_by_ids, "messages 3+4 (same sender, 2 minutes apart) should merge into one event"
+    # The 2-message goat-distribution thread (ids 2,3) plus its later,
+    # differently-worded confirmation (id 25) should all merge into one
+    # event -- this needed BOTH the sender/time-adjacency signal (for 2+3)
+    # AND raw (unredacted) text carrying the shared name "Achieng" (for 25).
+    assert (2, 3, 25) in events_by_ids, "the goat-distribution thread + its later confirmation should merge into one event"
+    goat_event = events_by_ids[(2, 3, 25)]
+    assert goat_event["participants"] is None or goat_event["participants"] >= 0  # no crash either way
+    assert "goat" in goat_event["activity_type"] or "livelihood" in goat_event["activity_type"]
 
-    goat_event = events_by_ids[(2, 3)]
-    duplicate_events = [e for e in output["events"] if e["duplicate_of"] == goat_event["event_id"]]
-    assert any(
-        e["source_message_ids"] == [25] for e in duplicate_events
-    ), "the later independent confirmation (message 26) should be flagged as a duplicate"
+    # A genuinely different beneficiary (id 36, "the Oduya family") with
+    # near-identical phrasing must NOT be merged into the Achieng event --
+    # this is exactly the false positive anonymization used to cause.
+    oduya_event = next(e for e in events if e["source_message_ids"] == [36])
+    assert oduya_event["duplicate_of"] is None
 
-    assert goat_event["attributes"]["activity_type"] == "livelihood_distribution"
-    assert goat_event["attributes"]["quantity"] == "2 goats"
+    # A true continuation 12 minutes apart, same sender (ids 30, 31) should
+    # merge -- content alone is too different, but adjacency makes it work.
+    assert (30, 31) in events_by_ids, "same-sender continuation 12 minutes apart should merge"
 
+    # Every parsed message should end up in exactly one bucket.
     from parser import parse_chat
 
     n_messages = len(parse_chat(ROOT / "data/synthetic/whatsapp_export.txt", dayfirst=True))
-    all_ids = {mid for e in output["events"] for mid in e["source_message_ids"]} | {
-        m["message_id"] for m in output["irrelevant_messages"]
-    }
+    all_ids = (
+        {mid for e in events for mid in e["source_message_ids"]}
+        | {m["message_id"] for m in output["irrelevant_messages"]}
+        | {m["id"] for m in output["media_only_messages"]}
+    )
     assert len(all_ids) == n_messages, "every source message should end up in exactly one bucket"

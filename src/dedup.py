@@ -1,11 +1,15 @@
 """
-Deduplication (pipeline step 7): detect events that describe the same
-underlying activity, even when reported by a different sender at a
-different time (so segmentation's sender+time rule won't have caught it).
+Deduplication safety net: runs AFTER cluster.py has already grouped
+messages into events. Clustering does the main work of merging messages
+about the same event; this is a second pass over the resulting EVENTS,
+in case two separate event clusters still turn out to describe the same
+real-world activity (e.g. two groups that individually fell just short of
+the clustering threshold). Sets `duplicate_of` at the event level, as
+requested, so two whole events can be collapsed together, not just two
+messages.
 
-The Week 5 plan already proposed sentence-transformers MiniLM for this step
-as an alternative to an LLM judgment call; we're using it directly as the
-baseline since a local Llama setup isn't ready yet (see README).
+Runs on raw (unredacted) text, same as clustering -- see cluster.py's
+docstring for why that matters.
 """
 
 from functools import lru_cache
@@ -32,7 +36,7 @@ def find_duplicates(
         return
 
     embedder = _get_embedder(model_name)
-    texts = [event["anonymized_text"] for event in events]
+    texts = [event["text"] for event in events]
     embeddings = embedder.encode(texts, normalize_embeddings=True)
 
     for i in range(len(events)):

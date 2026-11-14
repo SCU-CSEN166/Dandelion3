@@ -1,0 +1,52 @@
+{
+  "msg01": {
+    "relevant": true,
+    "event_group": "family_planning_outreach",
+    "participants": 42
+  },
+  "msg02": {
+    "relevant": true,
+    "event_group": "family_planning_outreach",
+    "participants": 42
+  },
+  "msg03": {
+    "relevant": false,
+    "event_group": null,
+    "participants": null
+  },
+  "msg04": {
+    "relevant": true,
+    "event_group": "table_banking",
+    "participants": 25
+  },
+  "msg05": {
+    "relevant": true,
+    "event_group": "menstrual_hygiene_session",
+    "participants": 60
+  },
+  "msg06": {
+    "relevant": true,
+    "event_group": "gbv_dialogue",
+    "participants": 35
+  },
+  "msg07": {
+    "relevant": true,
+    "event_group": "cervical_cancer_screening",
+    "participants": 28
+  },
+  "msg08": {
+    "relevant": false,
+    "event_group": null,
+    "participants": null
+  },
+  "msg09": {
+    "relevant": true,
+    "event_group": "kitchen_garden_training",
+    "participants": 18
+  },
+  "msg10": {
+    "relevant": true,
+    "event_group": "cervical_cancer_screening",
+    "participants": 28
+  }
+}
