@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import argparse
 import csv
-import re
 from pathlib import Path
 
 from anonymize import anonymize_text
+from activity_review import process_messages
+from cluster import cluster_events
 from dedup import find_duplicates
 from extract import extract_attributes
 from relevance_classifier import classify_relevance
@@ -64,59 +65,58 @@ def load_transcripts(path: Path, sheet_name: str | None = None) -> list[dict]:
         workbook.close()
 
 
-def participant_count(quantity: str | None) -> int | str:
-    """Map an existing people quantity to the CSV slot; never count supplies."""
-    if quantity:
-        match = re.fullmatch(
-            r"(\d+)\s+(?:people|participants|women|men|girls|boys|children|"
-            r"mothers|members|farmers|attendees|patients)", quantity, re.IGNORECASE,
-        )
-        if match:
-            return int(match[1])
-    return ""
-
-
 def run_hidden_tests(
     messages: list[dict],
     relevance_model: str = "facebook/bart-large-mnli",
     ner_model: str = "dslim/bert-base-NER",
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
 ) -> list[dict]:
-    # No sender/time metadata is supplied, so do not invent segmentation inputs.
-    anonymized = [
-        {"id": message["id"], "text": anonymize_text(message["text"], ner_model)}
-        for message in messages
-    ]
-    classified = classify_relevance(anonymized, relevance_model)
+    # No sender/time metadata is supplied; clustering can still use text and counts.
+    classified = classify_relevance([dict(message) for message in messages], relevance_model)
     if [item["id"] for item in classified] != [item["id"] for item in messages]:
         raise ValueError("Classifier did not return one ordered result per input message")
-    events = []
+    relevant = []
     for message in classified:
         if message["predicted_label"] not in {"relevant", "irrelevant"}:
             raise ValueError(f"Unexpected relevance label: {message['predicted_label']}")
         if message["predicted_label"] == "relevant":
-            events.append({
-                "event_id": f"msg_{message['id']}",
-                "source_message_ids": [message["id"]],
-                "anonymized_text": message["text"],
-                # Date is unavailable in this workbook.
-                "attributes": extract_attributes(message["text"], ""),
+            relevant.append({
+                **message,
+                **extract_attributes(message["text"], ""),
+                "relevance_confidence": message["confidence"],
             })
+
+    events = cluster_events(relevant, embedding_model)
+    order = {message["id"]: i for i, message in enumerate(messages)}
+    events.sort(key=lambda event: min(order[mid] for mid in event["source_message_ids"]))
+    for i, event in enumerate(events, start=1):
+        event.update(event_id=f"evt_{i:04d}", relevance="event")
     find_duplicates(events, embedding_model)
-    by_message = {event["source_message_ids"][0]: event for event in events}
-    event_ids = {event["event_id"]: event["source_message_ids"][0] for event in events}
+    reviewed = process_messages(events, ner_model=ner_model)
+    by_message = {mid: event for event in reviewed for mid in event["source_message_ids"]}
+    first_messages = {
+        event["event_id"]: min(event["source_message_ids"], key=order.get)
+        for event in reviewed
+    }
+
     results = []
     for message in classified:
         event = by_message.get(message["id"])
         attributes = event["attributes"] if event else {}
+        duplicate_of = "none"
+        if event:
+            # Include reports merged by clustering as well as event-level duplicates.
+            first_id = first_messages[event.get("duplicate_of") or event["event_id"]]
+            if first_id != message["id"]:
+                duplicate_of = first_id
+        participants = attributes.get("participants")
         results.append({
             "Message_id": message["id"],
-            "anonymized_text": message["text"],
+            "anonymized_text": anonymize_text(message["text"], ner_model),
             "relevance": "Event" if event else "Chit-chat",
             "activity_type": attributes.get("activity_type") or "",
-            "participants": participant_count(attributes.get("quantity")),
-            "duplicate_of": event_ids[event["duplicate_of"]]
-            if event and event.get("duplicate_of") else "none",
+            "participants": participants if participants is not None else "",
+            "duplicate_of": duplicate_of,
         })
     return results
 
@@ -146,7 +146,6 @@ def main() -> None:
     if args.check_input:
         return
     print("Using supplied transcripts; ASR is not evaluated.")
-    print("Existing baseline preserves locations and does not extract number words.")
     results = run_hidden_tests(messages, args.relevance_model, args.ner_model, args.embedding_model)
     write_results(results, args.output)
     events = sum(row["relevance"] == "Event" for row in results)

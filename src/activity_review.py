@@ -1,18 +1,22 @@
-"""Process Roland's anonymized JSON records. Run with: input.json output.json"""
+"""Anonymize and review Roland's event records. Run with: input.json output.json"""
 
 import json
 import sys
-from datetime import date
+
+if __package__:
+    from .anonymize import anonymize_text
+else:
+    from anonymize import anonymize_text
 
 
-FIELDS = ("activity_type", "date", "location", "quantity", "participants", "outcome")
+FIELDS = ("activity_type", "participants")
 
 
-def clean_message(message):
+def clean_message(message, ner_model="dslim/bert-base-NER"):
     # Use the same fields for every record, with null for missing values.
     attributes = {}
     for field in FIELDS:
-        value = message["attributes"].get(field)
+        value = message.get(field)
         if field == "participants":
             if value is not None and (type(value) is not int or value < 0):
                 raise ValueError("participants must be a nonnegative integer or null")
@@ -22,23 +26,22 @@ def clean_message(message):
             value = " ".join(value.split()) or None
         attributes[field] = value
 
-    if attributes["activity_type"]:
-        attributes["activity_type"] = attributes["activity_type"].lower().replace(" ", "_")
-    if attributes["date"]:
-        attributes["date"] = date.fromisoformat(attributes["date"]).isoformat()
-
-    confidence = message["relevance"]["confidence"]
+    confidence = message["relevance_confidence"]
     if type(confidence) not in (int, float) or not 0 <= confidence <= 1:
         raise ValueError("Relevance confidence must be a number between 0 and 1")
     source_ids = message["source_message_ids"]
     if not source_ids or any(type(item) is not int for item in source_ids):
         raise ValueError("Each message needs integer source_message_ids")
 
+    # Clustering uses raw text; redact it here before it reaches reviewed output.
+    if attributes["activity_type"]:
+        attributes["activity_type"] = anonymize_text(attributes["activity_type"], ner_model)
+
     return {
         "event_id": message.get("event_id"),
         "source_message_ids": sorted(set(source_ids)),
-        "anonymized_text": message["anonymized_text"].strip(),
-        "relevance": message["relevance"].copy(),
+        "anonymized_text": anonymize_text(message["text"].strip(), ner_model),
+        "relevance": {"label": "relevant", "confidence": confidence},
         "attributes": attributes,
         "activity_key": message.get("activity_key"),
         "duplicate_of": message.get("duplicate_of"),
@@ -62,10 +65,7 @@ def combine_messages(messages, event_id):
             conflicts[field] = values
             reasons.append(f"Conflicting {field}")
 
-    # Locations are hidden for privacy
-    suggestions = []
-    missing = [field for field in FIELDS
-               if field not in ("location", "quantity") and attributes[field] is None]
+    missing = [field for field in FIELDS if attributes[field] is None]
     if missing:
         reasons.append("Missing fields: " + ", ".join(missing))
     relevance = min(message["relevance"]["confidence"] for message in messages)
@@ -98,21 +98,21 @@ def combine_messages(messages, event_id):
             "score": score,
             "needs_review": bool(reasons),
             "reasons": reasons,
-            "suggested_review": bool(suggestions),
-            "suggestions": suggestions,
+            "suggested_review": False,
+            "suggestions": [],
         },
     }
 
 
-def process_messages(messages):
+def process_messages(messages, ner_model="dslim/bert-base-NER"):
     groups = {}
     seen = []
     for message in messages:
-        if message["relevance"]["label"] == "irrelevant":
+        if message["relevance"] == "chitchat":
             continue
-        if message["relevance"]["label"] != "relevant":
-            raise ValueError("Relevance label must be relevant or irrelevant")
-        message = clean_message(message)
+        if message["relevance"] != "event":
+            raise ValueError("Relevance label must be event or chitchat")
+        message = clean_message(message, ner_model)
         # Skip repeated records after cleaning up their formatting.
         if message in seen:
             continue

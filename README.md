@@ -201,12 +201,13 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 ### Changes attempted after stress-testing
 | Change | Worked? (Yes / Partly / No) | Evidence | Keep, revise, or revert? |
 |---|---|---|---|
-| [Change] | [Status] | [Result] | [Decision] |
+| Updated the runner and reran the hidden tests after the pipeline fixes. | Partly | See `hidden_test_outputs_fixed.csv`. Counts and duplicates improved, but some errors are still there. | Keep and fix remaining errors. |
 
 ### Individual contributions during that week
 | Member | Work completed | Result (worked / partly / failed) | Evidence | Next step |
 |---|---|---|---|---|
 | Sathvik Kumar | Added hidden test cases with voices and tested it | Working | (https://github.com/SCU-CSEN166/Dandelion3/tree/main/data) | Add image testing with visuals |
+| Ronav Poonekar | Updated my review layer for Roland’s new output, added anonymization, and reran the hidden tests. | Worked, some upstream errors are still there. | `activity_review.py`, `run_hidden_tests.py`, `hidden_test_outputs_fixed.csv` | Check whether review flags catch actual errors. |
 
 ---
 
