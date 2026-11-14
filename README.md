@@ -186,9 +186,19 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 
 **Deliverable during Week 9 Lab:** Hidden-test results (as provided by the TA), analysis of at least three important failure cases, and a prioritized improvement plan.
 
-- **Submitted system version / commit:** [Commit hash]
-- **Hidden-test metrics and leaderboard result:** [Results, when available]
-- **Difference from development results:** [Compare; do not assume the hidden set is identical]
+- **Submitted system version / commit:** 1b4f757
+- **Hidden-test metrics and leaderboard result:** 
+- Relevance: precision 1.000, recall 0.875, F1 0.933 (1 miss which was message 4. we assume the confusion was since the table-banking/savings report talk was different than what relevance we were testing for at the time.)
+- Participants: 7/7 correct on messages correctly identified as relevant and 7/8 overall since if we misclassify relevance we lose the participants data.
+- Activity type: 3/8 exact match to gold label and 4/8 partial, 1/8 wrong (another cascade from the relevance miss)
+- Deduplication: 2/2 real duplicate pairs were caught correctly and there were no false merges
+- PII: redaction was 43/45 items masked (95.6 recal); the two misses were both locations split across an odd connector word like "Kampi ya Moto" or odd phrasing
+- No rank yet will update when available!!!!!
+- **Difference from development results:** 
+- Relevance dropped slightly verses our old test set (F1 0.958->0.933) but this is expected because real speech has more variation than anything we wrote ourselves.
+- Deduplication did better on the real hidden set than our own synthetic set which deliberately includes near impossible edge cases. This is a reasonable sign that our stress tests were harder and also our updated model/dedup logic is working better.
+- Participants and activity_type had no prior dev set number as we did not have these metric before this week.
+- We have started to see compounding errors where when we get the relevance wrong we lose the data we would have collected otherwise instead of keeping it for review later. this will be a change we make this week.
 
 | Failure case / category | What went wrong | Possible cause | Severity / user impact | Proposed fix |
 |---|---|---|---|---|
@@ -201,6 +211,12 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 ### Changes attempted after stress-testing
 | Change | Worked? (Yes / Partly / No) | Evidence | Keep, revise, or revert? |
 |---|---|---|---|
+|Added participants extraction to extract.py|yes|0/10 populated before to 7/7 on correctly classified relevant messages in final verification run.|keep|
+|made activity_type free text instead of a fixed enum|partly|miscategorized 6/7 events before to 3/8 match, 4/8 partial|Revise/Keep. Predictions are topically right but need cleanup for the spreadsheet.
+|removed anonymization from pipeline to help with classification and moved it to post-processing | yes | Real duplicate pairs caught went from 0/2 to 2/2 with zero false flags on the hidden set (redacting names had been getting rid of all details that differentiated the events) | Keep, false positive/false negatives are not fully solved, but this helped a lot.|
+|added a cleanup for WhatsApp media placeholders|yes|correctly set aside all media only messages in testing|Keep|
+|Fixed a stale duplicate threshold default in pipeline that kept overriding the clustering fix|Yes|A known correct test case went from failing to passing once the two defaults were synced | Keep |
+|Added location redaction back to anonymize.py|partly|PII redaction recall went from 66/7 to 95.6 on the golden set but introduced new over-redaction of non-PII like brandwords.|Keep/Revise|
 | Updated the runner and reran the hidden tests after the pipeline fixes. | Partly | See `hidden_test_outputs_fixed.csv`. Counts and duplicates improved, but some errors are still there. | Keep and fix remaining errors. |
 
 ### Individual contributions during that week
@@ -208,7 +224,7 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 |---|---|---|---|---|
 | Sathvik Kumar | Added hidden test cases with voices and tested it | Working | (https://github.com/SCU-CSEN166/Dandelion3/tree/main/data) | Add image testing with visuals |
 | Ronav Poonekar | Updated my review layer for Roland’s new output, added anonymization, and reran the hidden tests. | Worked, some upstream errors are still there. | `activity_review.py`, `run_hidden_tests.py`, `hidden_test_outputs_fixed.csv` | Check whether review flags catch actual errors. |
-
+|Roland Breise|Rebuilt the mid pipeline from our new architecture decisions: removed anonymization from pre-classification section, merged segmentation and dedup into a while chat event clustering with an event level duplicate safety net, added the participants field and activity type field, added media placeholder cleanup, added location redaction back since it is needed. ran validations against real golden set|Worked (with known gaps) |src/cluster.py, src/clean.py, src/extract.py, src/anonymize.py, commit '1b4f757|Fix the over-redaction found this week (brand names flagging as locations and so forth) and clean up activity_types wordyness. |
 ---
 
 ## Week 9 — Responsible AI, Peer Testing, and Final Delivery
