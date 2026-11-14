@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from src.activity_baseline import process_messages
+from src.activity_review import process_messages
 
 
 def sample_event():
@@ -15,6 +15,7 @@ def sample_event():
             "date": "2026-02-03",
             "location": "Kakamega",
             "quantity": "2 goats",
+            "participants": 1,
             "outcome": "positive",
         },
         "duplicate_of": "evt_0001",
@@ -29,23 +30,59 @@ class ActivityBaselineTests(unittest.TestCase):
         self.assertEqual(event["duplicate_of"], "evt_0001")
         self.assertEqual(event["duplicate_confidence"], 0.81)
 
-    def test_missing_location_only_suggests_review(self):
+    def test_hidden_location_does_not_require_review(self):
+        for location in (None, "[LOCATION]"):
+            with self.subTest(location=location):
+                message = sample_event()
+                message["attributes"]["location"] = location
+                event = process_messages([message])[0]
+                self.assertEqual(event["attributes"]["location"], location)
+                self.assertEqual(event["confidence"]["score"], 0.94)
+                self.assertFalse(event["confidence"]["needs_review"])
+                self.assertFalse(event["confidence"]["suggested_review"])
+
+    def test_missing_quantity_does_not_require_review(self):
         message = sample_event()
-        message["attributes"]["location"] = None
+        message["attributes"]["quantity"] = None
         confidence = process_messages([message])[0]["confidence"]
         self.assertEqual(confidence["score"], 0.94)
         self.assertFalse(confidence["needs_review"])
-        self.assertTrue(confidence["suggested_review"])
-        self.assertEqual(confidence["suggestions"], ["Missing location"])
 
-    def test_missing_quantity_still_requires_review(self):
+    def test_participant_count_is_preserved(self):
+        for count in (0, 42):
+            with self.subTest(count=count):
+                message = sample_event()
+                message["attributes"]["participants"] = count
+                event = process_messages([message])[0]
+                self.assertEqual(event["attributes"]["participants"], count)
+                self.assertFalse(event["confidence"]["needs_review"])
+
+    def test_invalid_participant_count_is_rejected(self):
+        for count in (-1, True, 2.5, "42"):
+            with self.subTest(count=count):
+                message = sample_event()
+                message["attributes"]["participants"] = count
+                with self.assertRaisesRegex(ValueError, "participants"):
+                    process_messages([message])
+
+    def test_missing_participants_requires_review(self):
         message = sample_event()
-        message["attributes"]["location"] = None
-        message["attributes"]["quantity"] = None
+        del message["attributes"]["participants"]
         confidence = process_messages([message])[0]["confidence"]
         self.assertEqual(confidence["score"], 0.6)
         self.assertTrue(confidence["needs_review"])
-        self.assertTrue(confidence["suggested_review"])
+        self.assertIn("Missing fields: participants", confidence["reasons"])
+
+    def test_conflicting_participants_are_not_added_together(self):
+        first = sample_event()
+        second = copy.deepcopy(first)
+        second["source_message_ids"] = [4]
+        first["attributes"]["participants"] = 42
+        second["attributes"]["participants"] = 40
+        event = process_messages([first, second])[0]
+        self.assertIsNone(event["attributes"]["participants"])
+        self.assertEqual(event["conflicts"]["participants"], [42, 40])
+        self.assertTrue(event["confidence"]["needs_review"])
 
     def test_conflicts_still_require_review(self):
         first = sample_event()

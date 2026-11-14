@@ -1,8 +1,8 @@
 """
 Full three-person chain: Sathvik's ingestion -> Roland's mid-pipeline ->
-Ronav's activity_baseline review layer. Regression test for a real
+Ronav's activity_review review layer. Regression test for a real
 interface mismatch found while testing the whole system together:
-activity_baseline.py expects a bare list of event records, but
+activity_review.py expects a bare list of event records, but
 pipeline.py's main output is a dict with `events`/`irrelevant_messages`
 keys. Fixed by having pipeline.py also write a bare events list
 (`--events-output`); this test checks that handoff actually works end to
@@ -23,7 +23,7 @@ def test_full_chain_ingestion_to_review(tmp_path):
     pytest.importorskip("transformers")
     pytest.importorskip("torch")
     pytest.importorskip("sentence_transformers")
-    from activity_baseline import process_messages
+    from activity_review import process_messages
     from pipeline import run_pipeline
 
     output = run_pipeline(ROOT / "data/synthetic/whatsapp_export.txt")

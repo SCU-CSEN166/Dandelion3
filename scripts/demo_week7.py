@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from activity_baseline import process_messages
+from activity_review import process_messages
 from pipeline import run_pipeline
 from relevance_classifier import classify_relevance, evaluate, parse_whatsapp_export
 
@@ -67,7 +67,7 @@ def main() -> None:
 
     reviewed = process_messages(events)
     n_flagged = sum(1 for e in reviewed if e["confidence"]["needs_review"])
-    print(f"-> chained into activity_baseline.py: {n_flagged}/{len(reviewed)} "
+    print(f"-> chained into activity_review.py: {n_flagged}/{len(reviewed)} "
           f"({n_flagged / len(reviewed):.0%}) flagged needs_review")
 
     section("4. SUCCESS CASE: segmentation + deduplication working together")
