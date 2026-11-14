@@ -121,7 +121,7 @@ The classifier and Ronav's data formatting baseline are described below. They ru
 Run it from the project folder:
 
 ```bash
-python3 src/activity_baseline.py data/synthetic/classified_messages.json activities.json
+python3 src/activity_review.py data/synthetic/classified_messages.json activities.json
 ```
 
 The included synthetic example produces one activity for distributing 2 goats in Kakamega, with a confidence score of 0.94 and no review flag. The output is saved in `activities.json`.
@@ -136,7 +136,7 @@ The included synthetic example produces one activity for distributing 2 goats in
 |---|---|---|---|---|
 | Roland Breise | Wrote the synthetic WhatsApp dataset (`data/synthetic/whatsapp_export.txt` + gold labels) and the relevance classifier (`src/relevance_classifier.py`, zero-shot BART-MNLI) | Worked | F1 0.957 on the 24-message dev set; see `outputs/relevance_predictions.jsonl` | No blocker. Next: expand the synthetic dataset (more messages, more activity types, more borderline cases) and add a confidence-threshold rule for the human-review queue |
 | Sathvik Kumar | Added a WhatsApp message parser (`src/parse_messages.py`) and sample data (`data/synthetic/sample_messages.json`) | Worked | [data/synthetic](https://github.com/SCU-CSEN166/Dandelion3/tree/main/data/synthetic) | Implement AI models and tests |
-| Ronav Poonekar | Added consistent JSON formatting, activity grouping, exact duplicate removal, and confidence/review rules | Worked on synthetic examples | `src/activity_baseline.py`, `data/synthetic/classified_messages.json`; commit `2aa0459` | Connect to the classifier's output and test more cases |
+| Ronav Poonekar | Added consistent JSON formatting, activity grouping, exact duplicate removal, and confidence/review rules | Worked on synthetic examples | `src/activity_review.py`, `data/synthetic/classified_messages.json`; commit `2aa0459` | Connect to the classifier's output and test more cases |
 
 ---
 
@@ -178,7 +178,7 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 |---|---|---|---|---|
 | Roland | Extended the synthetic dataset with adversarial cases. Found a 3 bugs by running full pipeline and fixed. Completed steps 3-7 of the pipeline| worked partially | test/, outputs/reviewed_events.json, and TESTING.md | pick and run one of the next eperiments |
 | Sathvik Kumar | Added a JSON loader and a Whisper ASR step that turn synthetic messages and voice notes into transcripts.| Partly | https://github.com/SCU-CSEN166/Dandelion3/commits/parse-asr | Test ASR on recorded voice notes and measure WER. |
-| Ronav Poonekar | Fixed metadata preservation and changed missing locations to suggested review | Worked on saved pipeline output; 7 tests passed | `src/activity_baseline.py`, `tests/test_activity_baseline.py` | Manually check more events to see whether confidence rules catch actual errors |
+| Ronav Poonekar | Fixed metadata preservation and changed missing locations to suggested review | Worked on saved pipeline output; 7 tests passed | `src/activity_review.py`, `tests/test_activity_review.py` | Manually check more events to see whether confidence rules catch actual errors |
 
 ---
 

@@ -130,7 +130,7 @@ def main():
         type=Path,
         default=None,
         help="Also write just the events list (no irrelevant_messages wrapper) here -- "
-        "this is the shape Ronav's activity_baseline.py expects as input.",
+        "this is the shape Ronav's activity_review.py expects as input.",
     )
     args = parser.parse_args()
 

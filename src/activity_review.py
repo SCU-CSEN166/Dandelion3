@@ -5,7 +5,7 @@ import sys
 from datetime import date
 
 
-FIELDS = ("activity_type", "date", "location", "quantity", "outcome")
+FIELDS = ("activity_type", "date", "location", "quantity", "participants", "outcome")
 
 
 def clean_message(message):
@@ -13,7 +13,10 @@ def clean_message(message):
     attributes = {}
     for field in FIELDS:
         value = message["attributes"].get(field)
-        if value is not None:
+        if field == "participants":
+            if value is not None and (type(value) is not int or value < 0):
+                raise ValueError("participants must be a nonnegative integer or null")
+        elif value is not None:
             if not isinstance(value, str):
                 raise ValueError(f"{field} must be a string or null")
             value = " ".join(value.split()) or None
@@ -59,11 +62,10 @@ def combine_messages(messages, event_id):
             conflicts[field] = values
             reasons.append(f"Conflicting {field}")
 
-    # A missing location is worth checking, but doesn't make the other fields less reliable.
+    # Locations are hidden for privacy
     suggestions = []
-    if attributes["location"] is None:
-        suggestions.append("Missing location")
-    missing = [field for field in FIELDS if field != "location" and attributes[field] is None]
+    missing = [field for field in FIELDS
+               if field not in ("location", "quantity") and attributes[field] is None]
     if missing:
         reasons.append("Missing fields: " + ", ".join(missing))
     relevance = min(message["relevance"]["confidence"] for message in messages)
@@ -140,7 +142,7 @@ def process_messages(messages):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        sys.exit("Usage: python3 src/activity_baseline.py input.json output.json")
+        sys.exit("Usage: python3 src/activity_review.py input.json output.json")
     with open(sys.argv[1], encoding="utf-8") as file:
         messages = json.load(file)
     events = process_messages(messages)
