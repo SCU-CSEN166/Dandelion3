@@ -232,10 +232,10 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 **Deliverable during Week 10 Lab:** Document peer-testing feedback, Responsible AI concerns, changes made in response, and the final runnable system. Submit the final project report as instructed.
 
 ### Peer testing
-- **Team evaluated:** [Team ID]
-- **One thing that worked well:** [Evidence]
-- **One meaningful failure:** [Reproduction steps or example]
-- **One actionable recommendation:** [Specific fix]
+- **Team evaluated:** Dandelion4
+- **One thing that worked well:** They have more attributes like time and job title which could be a good addition for an M&E log. They had a good multi value extraction which correctly returned a list of multiple people, locations or counts when needed instead of just the first entry. Correct redaction.    
+- **One meaningful failure:** No documentation's of how to run the project, no transcription for audio files, no way to input text file only the text that was passed in, no duplication check, no printed/outputted relevance. Real name did leak completely un-redacted. Field-type confusion error where it labels Whatsapp as an email and Mpesa as a phone number also some phone numbers show up as phone numbers and other as ID numbers. Activity type is barely populated only 2 out of 10 have an activity type despite the activity being explicitly stated in the text for most others.           
+- **One actionable recommendation:** Make the next input so that multiple texts can be passed through instead of one at a time. Standardizing the field names would be a quick fix. Trying to properly fix the redaction so no names are leaked, should be a top priority to protect the people's privacy. Adding relevance filtering before extraction could be good because not every message needs a full report. Lastly, investigate why activity type is not populated as that is highly relevant information to classify events.  
 - **Feedback received from another team:** [Summary]
 
 ### Responsible AI assessment
