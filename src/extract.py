@@ -113,6 +113,8 @@ ACTIVITY_NOUN_RE = re.compile(
     r"(?:session|training|talk|outreach|screening|dialogue|meeting|camp|programme|program|day|visit))\b",
     re.IGNORECASE,
 )
+_REPORTING_FROM_RE = re.compile(r"\breporting\s+from\b", re.IGNORECASE)
+
 # A verb-phrase match starting with one of these is filler, not the real
 # activity name (e.g. "held this afternoon" with the real noun phrase
 # appearing *before* the verb instead) -- fall through to ACTIVITY_NOUN_RE.
@@ -128,6 +130,7 @@ _LEADIN_RES = [
     re.compile(r"^i\s+was\s+helping\s+[a-z]+(?:\s+[a-z]+)?\s+at\s+", re.IGNORECASE),
     re.compile(r"^this\s+is\s+[a-z]+(?:\s+[a-z]+)?\s+reporting\s+from\s+", re.IGNORECASE),
     re.compile(r"^we\s+went\s+to\s+[\w' ]+?\s+for\s+", re.IGNORECASE),
+    re.compile(r"^(?:today|yesterday)\s+(?:is|was)\s+(?:our|the|an?)\s+", re.IGNORECASE),
     re.compile(r"^(?:today'?s|the)\s+", re.IGNORECASE),
 ]
 
@@ -158,9 +161,14 @@ def extract_activity_type(text: str) -> str:
         if first_word not in _FILLER_FIRST_WORDS:
             return _strip_leadin(phrase.lower())
 
-    match = ACTIVITY_NOUN_RE.search(text)
-    if match:
-        return _strip_leadin(match.group(1).strip().lower())
+    phrases = [match.group(1).strip().lower() for match in ACTIVITY_NOUN_RE.finditer(text)]
+    if phrases:
+        # An introduction may name the group or venue before the report names the activity.
+        activity = next(
+            (phrase for phrase in phrases if not _REPORTING_FROM_RE.search(phrase)),
+            phrases[0],
+        )
+        return _strip_leadin(activity)
 
     lowered = text.lower()
     for label, patterns in ACTIVITY_RULES:

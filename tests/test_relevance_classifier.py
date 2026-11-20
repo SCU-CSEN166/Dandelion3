@@ -1,22 +1,21 @@
 """
 Tests for the Week 6 relevance classifier.
 
-The first three tests are fast and need no model/network access — they check
-the WhatsApp parser and the scoring logic directly. The last test is a real
-integration check: it runs the actual zero-shot model on our synthetic
-dataset and asserts the F1 we report in the README still holds.
+The parser, scoring, and fallback tests run without model downloads. The
+integration test checks the zero-shot model on our synthetic dataset.
 """
 
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.relevance_classifier import evaluate, parse_whatsapp_export
+from src.relevance_classifier import classify_relevance, evaluate, parse_whatsapp_export
 
 
 def test_parse_whatsapp_export(tmp_path):
@@ -92,10 +91,33 @@ def test_evaluate_catches_false_positive_and_false_negative(tmp_path):
     assert metrics["f1"] == 0.0
 
 
+@pytest.mark.parametrize(
+    ("text", "chit_chat_score", "expected_label", "expected_score"),
+    [
+        ("We held a savings group meeting. Twenty-five members attended.", 0.55, "relevant", 0.45),
+        ("We held an outreach session. 18 women participated.", 0.60, "irrelevant", 0.60),
+        ("Eighteen people signed up for tomorrow's training.", 0.55, "irrelevant", 0.55),
+        ("Twenty-five people attended the birthday party.", 0.55, "irrelevant", 0.55),
+    ],
+)
+def test_borderline_chit_chat_requires_activity_and_attendance(
+    monkeypatch, text, chit_chat_score, expected_label, expected_score,
+):
+    def classify(_text, candidate_labels):
+        return {"labels": candidate_labels[::-1], "scores": [chit_chat_score, 1 - chit_chat_score]}
+
+    transformers = SimpleNamespace(pipeline=lambda *args, **kwargs: classify)
+    monkeypatch.setitem(sys.modules, "transformers", transformers)
+
+    [result] = classify_relevance([{"id": 1, "text": text}], "test-model")
+
+    assert result["predicted_label"] == expected_label
+    assert result["confidence"] == expected_score
+
+
 def test_real_dataset_meets_f1_threshold():
     pytest.importorskip("transformers")
     pytest.importorskip("torch")
-    from src.relevance_classifier import classify_relevance
 
     messages = parse_whatsapp_export(ROOT / "data/synthetic/whatsapp_export.txt")
     predictions = classify_relevance(messages, "facebook/bart-large-mnli")

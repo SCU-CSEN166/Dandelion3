@@ -17,6 +17,11 @@ import json
 import re
 from pathlib import Path
 
+if __package__:
+    from .extract import NUMBER_TOKEN, PARTICIPANT_NOUNS
+else:
+    from extract import NUMBER_TOKEN, PARTICIPANT_NOUNS
+
 MESSAGE_RE = re.compile(
     r"^(?P<date>\d{1,2}/\d{1,2}/\d{4}),\s*(?P<time>\d{1,2}:\d{2})\s*-\s*"
     r"(?P<sender>[^:]+):\s*(?P<text>.*)$"
@@ -28,6 +33,16 @@ CANDIDATE_LABELS = [
     "casual conversation, small talk, or group chit-chat",
 ]
 RELEVANT_LABEL = CANDIDATE_LABELS[0]
+
+_BORDERLINE_CHIT_CHAT = 0.60
+_ACTIVITY_RE = re.compile(
+    r"\b(?:table[ -]banking|savings[ -]group|meeting|training|outreach|workshop|session)\b",
+    re.IGNORECASE,
+)
+_ATTENDANCE_RE = re.compile(
+    rf"\b{NUMBER_TOKEN}\s+(?:{PARTICIPANT_NOUNS})\s+(?:attended|participated)\b",
+    re.IGNORECASE,
+)
 
 
 def parse_whatsapp_export(path: Path) -> list[dict]:
@@ -58,11 +73,20 @@ def classify_relevance(messages: list[dict], model_name: str) -> list[dict]:
     classifier = pipeline("zero-shot-classification", model=model_name)
     results = []
     for msg in messages:
-        output = classifier(msg["text"], candidate_labels=CANDIDATE_LABELS)
-        top_label = output["labels"][0]
-        top_score = output["scores"][0]
-        predicted = "relevant" if top_label == RELEVANT_LABEL else "irrelevant"
-        results.append({**msg, "predicted_label": predicted, "confidence": round(top_score, 4)})
+        text = msg["text"]
+        output = classifier(text, candidate_labels=CANDIDATE_LABELS)
+        predicted = "relevant" if output["labels"][0] == RELEVANT_LABEL else "irrelevant"
+        confidence = output["scores"][0]
+        if (
+            predicted == "irrelevant"
+            and confidence < _BORDERLINE_CHIT_CHAT
+            and _ACTIVITY_RE.search(text)
+            and _ATTENDANCE_RE.search(text)
+        ):
+            predicted = "relevant"
+            # Keep BART's event score so the review step can still flag the close call.
+            confidence = output["scores"][1]
+        results.append({**msg, "predicted_label": predicted, "confidence": round(confidence, 4)})
     return results
 
 

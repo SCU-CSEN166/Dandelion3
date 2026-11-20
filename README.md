@@ -249,12 +249,14 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 ### Final improvements and outcomes
 | Feedback / issue | Change made | Worked? (Yes / Partly / No) | Evidence | Remaining limitation |
 |---|---|---|---|---|
-| [Issue] | [Change] | [Status] | [Link or metric] | [Limitation] |
+| The hidden-test runner used transcripts from a spreadsheet. | Added `--audio-dir` so the runner can transcribe recordings with Whisper and keep the original message IDs. | Yes | All 10 recordings went through the pipeline. [Final results](hidden_test_outputs/hidden_test_output_final.csv) | We still need to measure Whisper's word error rate on these recordings. |
+| The classifier marked a table-banking report as chit-chat. | Added a second check for borderline chit-chat when the message names an activity and reports attendance. | Yes | Correct relevance labels rose from 9/10 to 10/10, and correct participant counts rose from 7/8 to 8/8 for events. [Baseline](hidden_test_outputs/hidden_test_output_asr.csv), [chit-chat fix](hidden_test_outputs/hidden_test_output_chitchat_fix.csv) | The fallback needs testing on more recordings with borderline reports. |
+| The extractor used the speaker's introduction as the activity label for message 4. | Made the extractor look past reporting introductions for a phrase that names the activity. | Yes | Message 4 now reads `monthly table banking day`. [Final results](hidden_test_outputs/hidden_test_output_final.csv) | Exact activity labels matched 5/8 reference labels. Some labels still leave out the topic or a second activity. |
 
 ### Individual contributions during that week
 | Member | Final implementation / evaluation / documentation contribution | Result (worked / partly / failed) | Evidence | Reflection / remaining work |
 |---|---|---|---|---|
-| Ronav Poonekar | I added `--audio-dir` to the hidden-test runner so it can use our existing Whisper code to transcribe the voice notes directly. | Worked. I ran all 10 recordings and got a results CSV with one row per message. | `src/run_hidden_tests.py`, `outputs/hidden_test_asr.csv` | I want to compare this run with the supplied-transcript run to see whether Whisper errors affect the event labels or participant counts. |
+| Ronav Poonekar | I connected our existing Whisper code to the hidden-test runner and ran all 10 voice notes. I added a second check for borderline chit-chat when the message reports attendance. I also updated the activity extractor to look past reporting introductions and pick up what actually happened. | Worked. Correct relevance labels went from 9/10 to 10/10, and correct participant counts went from 7/8 to 8/8 for events. The table-banking report went from `Chit-chat` to an event labeled `monthly table banking day` with 25 participants. | `src/run_hidden_tests.py`, `src/relevance_classifier.py`, `src/extract.py`, `hidden_test_outputs/hidden_test_output_final.csv` | I'd like to test the fallback on more recordings and improve redaction for multiword place names. |
 
 
 

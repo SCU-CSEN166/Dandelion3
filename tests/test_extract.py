@@ -87,6 +87,13 @@ def test_activity_type_strips_self_referential_leadin():
     ) == "community dialogue"
 
 
+def test_activity_type_prefers_the_activity_after_a_reporting_intro():
+    intro = "Reporting from the women's group meeting."
+    table_banking_report = f"{intro} Today was our monthly table banking day."
+    assert extract_activity_type(table_banking_report) == "monthly table banking day"
+    assert extract_activity_type(f"{intro} Yesterday was our seed exchange day.") == "seed exchange day"
+
+
 def test_strip_leadin_never_returns_empty():
     # A leadin strip that would leave nothing useful should fall back to
     # the original phrase rather than returning an empty/near-empty string.
