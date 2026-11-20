@@ -14,7 +14,7 @@ filtering -> attribute extraction -> event clustering -> deduplication ->
 anonymization -> review flagging, and writes one output CSV.
 
 Usage:
-    python run.py <input_path> [--output outputs/results.csv] [--asr-model MODEL]
+    python run.py <input_path> [--output hidden_test_output_post_changes.csv] [--asr-model MODEL]
 """
 
 import argparse
@@ -31,7 +31,7 @@ from run_hidden_tests import run_hidden_tests, write_results
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("input", type=Path, help="WhatsApp .txt export, folder of audio files, a single audio file, or an .xlsx of transcripts")
-    parser.add_argument("--output", type=Path, default=Path("outputs/pipeline_results.csv"))
+    parser.add_argument("--output", type=Path, default=Path("hidden_test_output_post_changes.csv"))
     parser.add_argument("--asr-model", default="openai/whisper-small")
     parser.add_argument("--relevance-model", default="facebook/bart-large-mnli")
     parser.add_argument("--ner-model", default="dslim/bert-base-NER")
