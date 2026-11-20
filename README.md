@@ -239,12 +239,12 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 - **Feedback received from another team:** [Summary]
 
 ### Responsible AI assessment
-- **Potential harms or affected users:** [Who could be affected and how?]
-- **Privacy and data handling:** [How sensitive information is protected]
-- **Reliability and unsupported claims:** [How outputs are verified or uncertainty is communicated]
-- **Fairness, accessibility, and usability:** [Relevant concerns and tests]
-- **Human oversight:** [Where a human should review or correct outputs]
-- **Remaining limitations:** [What should not be trusted or deployed yet]
+- **Potential harms or affected users:** If we fail to properly redact all information, we could end up leaking to unwanted eyes. If they discuss a future event and it flags as a completed past event it may cause innaction in the future which would affect all receiving parties as well as the credibility of the institution. 
+- **Privacy and data handling:** All sensitive information is redacted before the output to ensure that nothing unwanted is leaked. 
+- **Reliability and unsupported claims:** If outputs have low confidence, we flag them and add them to a "check" list where a human can verify if the event is real or not. 
+- **Fairness, accessibility, and usability:** This system is fair. It is not currently accessible to blind people, as we have not added audio cues. Usability is currently good but since you have to be fairly tech-savvy to use it at the moment, we are going to add a frontend to allow for easier use. This will either be in the form of a web app or a desktop application. 
+- **Human oversight:** A human should review the flagged outputs to make sure the low-confidence results are still good.
+- **Remaining limitations:** All output should be trusted (unless flagged) and we have deployed everything except the frontend. 
 
 ### Final improvements and outcomes
 | Feedback / issue | Change made | Worked? (Yes / Partly / No) | Evidence | Remaining limitation |
