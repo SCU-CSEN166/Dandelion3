@@ -275,7 +275,7 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 ## Setup and Reproducibility (keep updated)
 
 ### Requirements
-Python 3.9+. Libraries: `transformers`, `torch` (see `requirements.txt`). No GPU required — `facebook/bart-large-mnli` runs on CPU (or Apple Silicon MPS) for a dataset this small; the model (~1.6GB) downloads automatically from Hugging Face on first run.
+Python 3.9+, `ffmpeg` installed (for audio), everything else in `requirements.txt` (transformers, torch, sentence-transformers, openpyxl). No GPU needed, models just download automatically the first time you run something.
 
 ### Installation
 ```bash
@@ -292,31 +292,26 @@ python src/relevance_classifier.py \
 
 ### Run evaluation
 ```bash
-python src/relevance_classifier.py \
-  --input data/synthetic/whatsapp_export.txt \
-  --output outputs/relevance_predictions.jsonl \
-  --gold data/synthetic/gold_labels.jsonl
+python run.py <input>
 ```
+`<input>` can be a folder of voice-note audio files, a WhatsApp .txt export, a single audio file, or an .xlsx of transcripts (it figures out which). Runs everything (ASR, relevance, extraction, clustering, dedup, anonymization, review flagging) and writes one output CSV.
 
 ### Run tests
 ```bash
 python -m pytest tests/ -v
 ```
-The first three tests check the WhatsApp parser and the precision/recall/F1 scoring logic directly (fast, no model needed). The last test is a real integration check — it runs `facebook/bart-large-mnli` on `data/synthetic/whatsapp_export.txt` and fails if F1 drops below the Week 5 target (0.8).
+53 tests covering every step. Most need the real models, so the first run is slower while they download.
 
 ### Repository structure
 ```text
 Dandelion3/
 ├── README.md
 ├── requirements.txt
+├── run.py              # one command, runs the whole pipeline
 ├── data/
-│   └── synthetic/        # Roland: synthetic WhatsApp text + gold labels
-├── src/
-│   └── relevance_classifier.py   # Roland: relevance-filtering baseline
+├── src/                 # ingestion, ASR, relevance, extraction, clustering, dedup, anonymization, review
 ├── tests/
-│   └── test_relevance_classifier.py   # Roland: parser + scoring + F1-threshold tests
 └── outputs/
-    └── relevance_predictions.jsonl
 ```
 
 
