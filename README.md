@@ -255,6 +255,7 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 
 ### Individual contributions during that week
 | Member | Final implementation / evaluation / documentation contribution | Result (worked / partly / failed) | Evidence | Reflection / remaining work |
+|---|---|---|---|---|
 |Sathvik Kumar|Updated the Readme with Dandelion D4 project tested |Partly most of it needs improvements|Need to update the input tests and name redaction|Apply these and future changes|
 | Ronav Poonekar | I connected our existing Whisper code to the hidden-test runner and ran all 10 voice notes. I added a second check for borderline chit-chat when the message reports attendance. I also updated the activity extractor to look past reporting introductions and pick up what actually happened. | Worked. Correct relevance labels went from 9/10 to 10/10, and correct participant counts went from 7/8 to 8/8 for events. The table-banking report went from `Chit-chat` to an event labeled `monthly table banking day` with 25 participants. | `src/run_hidden_tests.py`, `src/relevance_classifier.py`, `src/extract.py`, `hidden_test_outputs/hidden_test_output_final.csv` | I'd like to test the fallback on more recordings and improve redaction for multiword place names. |
 
