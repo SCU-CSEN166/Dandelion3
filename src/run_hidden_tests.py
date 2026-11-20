@@ -1,6 +1,7 @@
-"""Load supplied transcripts and run the existing models; no ASR or gold labels.
+"""Run the hidden-set pipeline on recordings or supplied transcripts.
 
 Run from the repository root:
+    python src/run_hidden_tests.py --audio-dir data/hidden_test_audio
     python src/run_hidden_tests.py --input hidden_test_transcripts.xlsx
 """
 
@@ -12,6 +13,7 @@ from pathlib import Path
 
 from anonymize import anonymize_text
 from activity_review import process_messages
+from asr import Transcriber
 from cluster import cluster_events
 from dedup import find_duplicates
 from extract import extract_attributes
@@ -24,8 +26,10 @@ FIELDS = (
 )
 
 
-def load_transcripts(path: Path, sheet_name: str | None = None) -> list[dict]:
-    """Read rows in workbook order, preserving the supplied integer message IDs."""
+def _load_workbook_rows(
+    path: Path, sheet_name: str | None, source_column: str,
+) -> list[tuple[int, str]]:
+    """Read message IDs and source values in workbook order."""
     from openpyxl import load_workbook
 
     workbook = load_workbook(path, read_only=True, data_only=True)
@@ -34,10 +38,10 @@ def load_transcripts(path: Path, sheet_name: str | None = None) -> list[dict]:
         rows = sheet.iter_rows(values_only=True)
         header = next(rows, ())
         columns = {str(value).strip().lower(): i for i, value in enumerate(header)}
-        required = {"message_id", "transcript"}
+        required = {"message_id", source_column}
         if not required <= columns.keys():
-            raise ValueError("Workbook needs message_id and transcript column headers in row 1")
-        messages = []
+            raise ValueError(f"Workbook needs message_id and {source_column} column headers in row 1")
+        sources = []
         seen = set()
         for row_number, row in enumerate(rows, start=2):
             if all(value is None or value == "" for value in row):
@@ -53,16 +57,39 @@ def load_transcripts(path: Path, sheet_name: str | None = None) -> list[dict]:
                 raise ValueError(f"Row {row_number}: message_id must be an integer") from None
             if message_id in seen:
                 raise ValueError(f"Row {row_number}: duplicate message_id {message_id}")
-            transcript = row[columns["transcript"]]
-            if not isinstance(transcript, str) or not transcript.strip():
-                raise ValueError(f"Row {row_number}: transcript must contain text")
+            source = row[columns[source_column]]
+            if not isinstance(source, str) or not source.strip():
+                raise ValueError(f"Row {row_number}: {source_column} must contain text")
             seen.add(message_id)
-            messages.append({"id": message_id, "text": transcript.strip()})
-        if not messages:
-            raise ValueError("Workbook contains no transcripts")
-        return messages
+            sources.append((message_id, source.strip()))
+        return sources
     finally:
         workbook.close()
+
+
+def load_transcripts(path: Path, sheet_name: str | None = None) -> list[dict]:
+    """Load supplied transcripts with their message IDs in workbook order."""
+    rows = _load_workbook_rows(path, sheet_name, "transcript")
+    if not rows:
+        raise ValueError("Workbook contains no transcripts")
+    return [{"id": message_id, "text": transcript} for message_id, transcript in rows]
+
+
+def _load_audio_sources(path: Path, sheet_name: str | None, audio_dir: Path) -> list[tuple[int, Path]]:
+    rows = _load_workbook_rows(path, sheet_name, "audio_file")
+    if not rows:
+        raise ValueError("Workbook contains no audio files")
+    audio_dir = audio_dir.resolve()
+    sources = []
+    for message_id, filename in rows:
+        relative_path = Path(filename)
+        audio_path = (audio_dir / relative_path).resolve()
+        if relative_path.is_absolute() or not audio_path.is_relative_to(audio_dir):
+            raise ValueError(f"Message {message_id}: audio_file must be relative to {audio_dir}: {filename}")
+        if not audio_path.is_file():
+            raise FileNotFoundError(f"Message {message_id}: recording missing: {audio_path}")
+        sources.append((message_id, audio_path))
+    return sources
 
 
 def run_hidden_tests(
@@ -130,22 +157,42 @@ def write_results(results: list[dict], path: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input", type=Path, default=Path("hidden_test_transcripts.xlsx"))
     parser.add_argument("--sheet", help="Worksheet name (default: first worksheet)")
+    parser.add_argument("--audio-dir", type=Path, help="Transcribe recordings listed in the workbook's audio_file column")
+    parser.add_argument("--asr-model", default="openai/whisper-small", help="Whisper model used with --audio-dir")
     parser.add_argument("--output", type=Path, default=Path("outputs/hidden_test_outputs.csv"))
-    parser.add_argument("--check-input", action="store_true", help="Validate workbook without loading models")
+    parser.add_argument("--check-input", action="store_true", help="Validate workbook and any referenced recordings without loading models")
     parser.add_argument("--relevance-model", default="facebook/bart-large-mnli")
     parser.add_argument("--ner-model", default="dslim/bert-base-NER")
     parser.add_argument("--embedding-model", default="sentence-transformers/all-MiniLM-L6-v2")
     args = parser.parse_args()
-    if args.input.resolve() == args.output.resolve():
+    output_path = args.output.resolve()
+    if args.input.resolve() == output_path:
         parser.error("Input and output must be different files")
-    messages = load_transcripts(args.input, args.sheet)
-    print(f"Loaded {len(messages)} transcripts from {args.input}")
-    if args.check_input:
-        return
-    print("Using supplied transcripts; ASR is not evaluated.")
+    if args.audio_dir is None:
+        messages = load_transcripts(args.input, args.sheet)
+        print(f"Loaded {len(messages)} transcripts from {args.input}")
+        if args.check_input:
+            return
+    else:
+        sources = _load_audio_sources(args.input, args.sheet, args.audio_dir)
+        if any(path == output_path for _, path in sources):
+            parser.error("A recording and the output must be different files")
+        if args.check_input:
+            print(f"Validated {len(sources)} recording paths in {args.audio_dir}.")
+            print("Remove --check-input to transcribe the recordings with Whisper.")
+            return
+        print(f"Transcribing {len(sources)} recordings from {args.audio_dir} with {args.asr_model}...")
+        transcriber = Transcriber(args.asr_model)
+        messages = []
+        for message_id, path in sources:
+            transcript = transcriber.transcribe(str(path))
+            if not transcript:
+                raise ValueError(f"Message {message_id}: empty ASR transcript for {path.name}")
+            messages.append({"id": message_id, "text": transcript})
+
     results = run_hidden_tests(messages, args.relevance_model, args.ner_model, args.embedding_model)
     write_results(results, args.output)
     events = sum(row["relevance"] == "Event" for row in results)

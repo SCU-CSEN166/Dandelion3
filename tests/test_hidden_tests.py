@@ -29,6 +29,59 @@ def test_workbook_validation(monkeypatch):
     assert len(closed) == 3
 
 
+def test_audio_mode_feeds_whisper_text_to_pipeline(monkeypatch, tmp_path):
+    openpyxl = pytest.importorskip("openpyxl")
+    workbook_path = tmp_path / "transcripts.xlsx"
+    workbook = openpyxl.Workbook()
+    workbook.active.append(("message_id", "audio_file", "transcript"))
+    workbook.active.append((17, "msg02.mp4", "Stored transcript"))
+    workbook.active.append((4, "msg01.mp4", None))
+    workbook.save(workbook_path)
+    workbook.close()
+
+    audio_dir = tmp_path / "recordings"
+    audio_dir.mkdir()
+    for name in ("msg01.mp4", "msg02.mp4"):
+        (audio_dir / name).touch()
+
+    models = []
+
+    def make_transcriber(model):
+        models.append(model)
+
+        def transcribe(path):
+            assert Path(path).parent == audio_dir.resolve()
+            return f"Whisper text for {Path(path).name}"
+
+        return SimpleNamespace(transcribe=transcribe)
+
+    def classify(messages, model):
+        assert messages == [
+            {"id": 17, "text": "Whisper text for msg02.mp4"},
+            {"id": 4, "text": "Whisper text for msg01.mp4"},
+        ]
+        return [{**message, "predicted_label": "irrelevant"} for message in messages]
+
+    monkeypatch.setattr(runner, "Transcriber", make_transcriber)
+    monkeypatch.setattr(runner, "classify_relevance", classify)
+    monkeypatch.setattr(runner, "anonymize_text", lambda text, model: text)
+    output = tmp_path / "results.csv"
+    monkeypatch.setattr(sys, "argv", [
+        "run_hidden_tests.py", "--input", str(workbook_path), "--audio-dir", str(audio_dir),
+        "--asr-model", "test-whisper", "--output", str(output),
+    ])
+
+    runner.main()
+
+    assert models == ["test-whisper"]
+    with output.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    assert [row["Message_id"] for row in rows] == ["17", "4"]
+    assert [row["anonymized_text"] for row in rows] == [
+        "Whisper text for msg02.mp4", "Whisper text for msg01.mp4",
+    ]
+
+
 @pytest.mark.parametrize("merge_reports", [False, True])
 def test_model_handoff_and_csv(monkeypatch, tmp_path, merge_reports):
     messages = [

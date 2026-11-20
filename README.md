@@ -254,7 +254,7 @@ I tested my review layer on the pipeline's 22 events and fixed a bug that cleare
 ### Individual contributions during that week
 | Member | Final implementation / evaluation / documentation contribution | Result (worked / partly / failed) | Evidence | Reflection / remaining work |
 |---|---|---|---|---|
-| [Name] | [Specific work] | [Status] | [Link] | [Reflection] |
+| Ronav Poonekar | I added `--audio-dir` to the hidden-test runner so it can use our existing Whisper code to transcribe the voice notes directly. | Worked. I ran all 10 recordings and got a results CSV with one row per message. | `src/run_hidden_tests.py`, `outputs/hidden_test_asr.csv` | I want to compare this run with the supplied-transcript run to see whether Whisper errors affect the event labels or participant counts. |
 
 
 
@@ -296,11 +296,22 @@ python run.py <input>
 ```
 `<input>` can be a folder of voice-note audio files, a WhatsApp .txt export, a single audio file, or an .xlsx of transcripts (it figures out which). Runs everything (ASR, relevance, extraction, clustering, dedup, anonymization, review flagging) and writes one output CSV.
 
+To run the hidden set through Whisper while preserving the workbook's message IDs and row order, point `--audio-dir` at the folder containing the recordings listed in the `audio_file` column.
+
+```bash
+python src/run_hidden_tests.py \
+  --input hidden_test_transcripts.xlsx \
+  --audio-dir data/hidden_test_audio \
+  --output outputs/hidden_test_asr.csv
+```
+
+In audio mode, the workbook supplies the message IDs and filenames. Whisper generates the text used by the downstream models. Use `--asr-model` to select a model (default `openai/whisper-small`). Adding `--check-input` verifies the recording paths and exits before transcription. Omit `--audio-dir` to run the downstream models on the stored `transcript` column.
+
 ### Run tests
 ```bash
 python -m pytest tests/ -v
 ```
-53 tests covering every step. Most need the real models, so the first run is slower while they download.
+54 tests cover the pipeline. Tests that use real models may need to download them on the first run.
 
 ### Repository structure
 ```text
