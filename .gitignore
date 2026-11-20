@@ -5,6 +5,7 @@ __pycache__/
 data/synthetic/raw_audio/
 output/
 notes/
+TESTING.md
 drive-download-*/
 drive-download-*.zip
 *.mp4
