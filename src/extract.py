@@ -118,6 +118,37 @@ ACTIVITY_NOUN_RE = re.compile(
 # appearing *before* the verb instead) -- fall through to ACTIVITY_NOUN_RE.
 _FILLER_FIRST_WORDS = {"this", "today", "yesterday", "that", "afternoon", "morning", "evening"}
 
+# Self-referential/reporting lead-ins that make the extracted phrase read
+# like a sentence fragment instead of a category (e.g. "i want to report
+# on today's family planning outreach" -> "family planning outreach").
+# Applied repeatedly since more than one can stack up.
+_LEADIN_RES = [
+    re.compile(r"^i\s+want\s+to\s+(?:report\s+on|share\s+about|talk\s+about)\s+", re.IGNORECASE),
+    re.compile(r"^i\s+was\s+(?:also\s+)?at\s+", re.IGNORECASE),
+    re.compile(r"^i\s+was\s+helping\s+[a-z]+(?:\s+[a-z]+)?\s+at\s+", re.IGNORECASE),
+    re.compile(r"^this\s+is\s+[a-z]+(?:\s+[a-z]+)?\s+reporting\s+from\s+", re.IGNORECASE),
+    re.compile(r"^we\s+went\s+to\s+[\w' ]+?\s+for\s+", re.IGNORECASE),
+    re.compile(r"^(?:today'?s|the)\s+", re.IGNORECASE),
+]
+
+
+def _strip_leadin(phrase: str) -> str:
+    """Strip reporting/self-referential lead-in clauses so the result
+    reads as a category, not a sentence fragment. Never returns an empty
+    or too-short result -- falls back to the original phrase if a strip
+    would leave nothing useful."""
+    stripped = phrase
+    changed = True
+    while changed:
+        changed = False
+        for pattern in _LEADIN_RES:
+            new_stripped = pattern.sub("", stripped, count=1)
+            if new_stripped != stripped:
+                stripped = new_stripped
+                changed = True
+    stripped = stripped.strip()
+    return stripped if len(stripped) >= 3 else phrase
+
 
 def extract_activity_type(text: str) -> str:
     match = ACTIVITY_VERB_RE.search(text)
@@ -125,11 +156,11 @@ def extract_activity_type(text: str) -> str:
         phrase = match.group(1).strip()
         first_word = phrase.split()[0].lower() if phrase.split() else ""
         if first_word not in _FILLER_FIRST_WORDS:
-            return phrase.lower()
+            return _strip_leadin(phrase.lower())
 
     match = ACTIVITY_NOUN_RE.search(text)
     if match:
-        return match.group(1).strip().lower()
+        return _strip_leadin(match.group(1).strip().lower())
 
     lowered = text.lower()
     for label, patterns in ACTIVITY_RULES:

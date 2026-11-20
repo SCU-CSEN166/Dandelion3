@@ -4,7 +4,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from extract import extract_attributes, extract_participants, to_iso_date, words_to_number
+from extract import (
+    _strip_leadin,
+    extract_activity_type,
+    extract_attributes,
+    extract_participants,
+    to_iso_date,
+    words_to_number,
+)
 
 
 def test_to_iso_date():
@@ -61,3 +68,27 @@ def test_activity_type_does_not_trigger_on_common_idiom():
     # name because "ran" was in the verb trigger list.
     attrs = extract_attributes("We ran out of stock for the implants.", "03/02/2026")
     assert attrs["activity_type"] != "out of stock"
+
+
+def test_activity_type_strips_reporting_leadin():
+    # Regression: activity_type used to read as a sentence fragment
+    # ("i want to report on today's family planning outreach") instead
+    # of a clean category -- real example from the hidden-set data.
+    text = "I want to report on today's family planning outreach at Kampi ya Moto dispensary."
+    assert extract_activity_type(text) == "family planning outreach"
+
+
+def test_activity_type_strips_self_referential_leadin():
+    assert extract_activity_type(
+        "I was helping Sister Nancy at the screening camp in Rongai today."
+    ) == "screening"
+    assert extract_activity_type(
+        "I want to share about the community dialogue on gender-based violence."
+    ) == "community dialogue"
+
+
+def test_strip_leadin_never_returns_empty():
+    # A leadin strip that would leave nothing useful should fall back to
+    # the original phrase rather than returning an empty/near-empty string.
+    original = "i want to report on today's a"
+    assert _strip_leadin(original) == original
